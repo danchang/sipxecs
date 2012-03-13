@@ -1,0 +1,474 @@
+/*
+ *
+ *  Copyright (C) 2012 PATLive, I. Wesson, D. Chang
+ *  Contributed to SIPfoundry under a Contributor Agreement
+ *  OpenAcdClientsResource.java - A Restlet to read Skill data from OpenACD within SipXecs
+ *
+ *  This program is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU Affero General Public License as
+ *  published by the Free Software Foundation, either version 3 of the
+ *  License, or (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Affero General Public License for more details.
+
+ *  You should have received a copy of the GNU Affero General Public License
+ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+package org.sipfoundry.sipxconfig.rest;
+
+import static org.restlet.data.MediaType.APPLICATION_JSON;
+import static org.restlet.data.MediaType.TEXT_XML;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
+import org.restlet.Context;
+import org.restlet.data.Form;
+import org.restlet.data.MediaType;
+import org.restlet.data.Request;
+import org.restlet.data.Response;
+import org.restlet.data.Status;
+import org.restlet.resource.Representation;
+import org.restlet.resource.ResourceException;
+import org.restlet.resource.Variant;
+import org.sipfoundry.sipxconfig.openacd.OpenAcdClient;
+import org.sipfoundry.sipxconfig.openacd.OpenAcdContext;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.MetadataRestInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.OpenAcdClientRestInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.PaginationInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.ResponseCode;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.SortInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.ValidationInfo;
+import org.springframework.beans.factory.annotation.Required;
+
+import com.thoughtworks.xstream.XStream;
+
+public class OpenAcdClientsResource extends UserResource {
+    private static final String ELEMENT_NAME_CLIENTBUNDLE = "openacd-client";
+    private static final String ELEMENT_NAME_CLIENT = "client";
+
+    private OpenAcdContext m_openAcdContext;
+    private Form m_form;
+
+    // use to define all possible sort fields
+    enum SortField {
+        NAME, DESCRIPTION, NONE;
+
+        public static SortField toSortField(String fieldString) {
+            if (fieldString == null) {
+                return NONE;
+            }
+
+            try {
+                return valueOf(fieldString.toUpperCase());
+            } catch (Exception ex) {
+                return NONE;
+            }
+        }
+    }
+
+    @Override
+    public void init(Context context, Request request, Response response) {
+        super.init(context, request, response);
+        getVariants().add(new Variant(TEXT_XML));
+        getVariants().add(new Variant(APPLICATION_JSON));
+
+        // pull parameters from url
+        m_form = getRequest().getResourceRef().getQueryAsForm();
+    }
+
+    // Allowed REST operations
+    // -----------------------
+
+    @Override
+    public boolean allowGet() {
+        return true;
+    }
+
+    @Override
+    public boolean allowPut() {
+        return true;
+    }
+
+    @Override
+    public boolean allowDelete() {
+        return true;
+    }
+
+    // GET - Retrieve all and single Client
+    // ------------------------------------
+
+    @Override
+    public Representation represent(Variant variant) throws ResourceException {
+        // process request for single
+        int idInt;
+        OpenAcdClientRestInfo clientRestInfo = null;
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
+
+        if (idString != null) {
+            try {
+                idInt = RestUtilities.getIntFromAttribute(idString);
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
+            }
+
+            try {
+                clientRestInfo = createClientRestInfo(idInt);
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_READ_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
+            }
+
+            return new OpenAcdClientRepresentation(variant.getMediaType(), clientRestInfo);
+        }
+
+        // if not single, process request for list
+        List<OpenAcdClient> clients = m_openAcdContext.getClients();
+        List<OpenAcdClientRestInfo> clientsRestInfo = new ArrayList<OpenAcdClientRestInfo>();
+        MetadataRestInfo metadataRestInfo;
+
+        // sort groups if specified
+        sortClients(clients);
+
+        // set requested records and get resulting metadata
+        metadataRestInfo = addClients(clientsRestInfo, clients);
+
+        // create final restinfo
+        OpenAcdClientsBundleRestInfo clientsBundleRestInfo =
+                new OpenAcdClientsBundleRestInfo(clientsRestInfo, metadataRestInfo);
+
+        return new OpenAcdClientsRepresentation(variant.getMediaType(), clientsBundleRestInfo);
+    }
+
+    // PUT - Update or Add single Client
+    // ---------------------------------
+
+    @Override
+    public void storeRepresentation(Representation entity) throws ResourceException {
+        // get from request body
+        OpenAcdClientRepresentation representation = new OpenAcdClientRepresentation(entity);
+        OpenAcdClientRestInfo clientRestInfo = representation.getObject();
+        OpenAcdClient client;
+
+        // validate input for update or create
+        ValidationInfo validationInfo = validate(clientRestInfo);
+
+        if (!validationInfo.getValid()) {
+            RestUtilities.setResponseError(getResponse(), validationInfo.getResponseCode(),
+                    validationInfo.getMessage());
+            return;
+        }
+
+        // if have id then update single
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
+
+        if (idString != null) {
+            try {
+                int idInt = RestUtilities.getIntFromAttribute(idString);
+                client = m_openAcdContext.getClientById(idInt);
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
+                return;
+            }
+
+            // copy values over to existing
+            try {
+                updateClient(client, clientRestInfo);
+                m_openAcdContext.saveClient(client);
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
+                return;
+            }
+
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()),
+                    client.getId());
+
+            return;
+        }
+
+        // otherwise add new
+        try {
+            client = createClient(clientRestInfo);
+            m_openAcdContext.saveClient(client);
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED, RestUtilities
+                    .getResponseMessage(ResponseCode.ERROR_CREATE_FAILED, this.getClass().getSimpleName()),
+                    exception.getLocalizedMessage());
+            return;
+        }
+
+        RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_CREATED, RestUtilities
+                .getResponseMessage(ResponseCode.SUCCESS_CREATED, this.getClass().getSimpleName()), client
+                .getId());
+    }
+
+    // DELETE - Delete single Client
+    // -----------------------------
+
+    @Override
+    public void removeRepresentations() throws ResourceException {
+        OpenAcdClient client;
+
+        // get id then delete single
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
+
+        if (idString != null) {
+            try {
+                int idInt = RestUtilities.getIntFromAttribute(idString);
+                client = m_openAcdContext.getClientById(idInt);
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
+                return;
+            }
+
+            m_openAcdContext.deleteClient(client);
+
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_DELETED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_DELETED, this.getClass().getSimpleName()),
+                    client.getId());
+
+            return;
+        }
+
+        // no id string
+        RestUtilities.setResponse(getResponse(), ResponseCode.ERROR_MISSING_ID, RestUtilities
+                .getResponseMessage(ResponseCode.ERROR_MISSING_ID, this.getClass().getSimpleName()));
+    }
+
+    // Helper functions
+    // ----------------
+
+    // basic interface level validation of data provided through REST interface for creation or
+    // update
+    // may also contain clean up of input data
+    // may create another validation function if different rules needed for update v. create
+    private ValidationInfo validate(OpenAcdClientRestInfo restInfo) {
+        ValidationInfo validationInfo = new ValidationInfo();
+
+        String identity = restInfo.getIdentity();
+
+        for (int i = 0; i < identity.length(); i++) {
+            if ((!Character.isLetterOrDigit(identity.charAt(i)))
+                    && (Character.getType(identity.charAt(i)) != Character.CONNECTOR_PUNCTUATION)
+                    && (identity.charAt(i) != '-')) {
+                validationInfo.setValid(false);
+                validationInfo
+                        .setMessage("'Identity' must only contain letters, numbers, dashes, and underscores");
+                validationInfo.setResponseCode(ResponseCode.ERROR_BAD_INPUT);
+            }
+        }
+
+        return validationInfo;
+    }
+
+    private OpenAcdClientRestInfo createClientRestInfo(int id) throws ResourceException {
+        OpenAcdClientRestInfo clientRestInfo;
+
+        try {
+            OpenAcdClient client = m_openAcdContext.getClientById(id);
+            clientRestInfo = new OpenAcdClientRestInfo(client);
+        } catch (Exception exception) {
+            throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND, RestUtilities.getResponseMessage(
+                    ResponseCode.ERROR_BAD_ID, Integer.toString(id)));
+        }
+
+        return clientRestInfo;
+    }
+
+    private MetadataRestInfo addClients(List<OpenAcdClientRestInfo> clientsRestInfo,
+            List<OpenAcdClient> clients) {
+        OpenAcdClientRestInfo clientRestInfo;
+
+        // determine pagination
+        PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, clients.size());
+
+        // create list of client restinfos
+        for (int index = paginationInfo.getStartIndex(); index <= paginationInfo.getEndIndex(); index++) {
+            OpenAcdClient client = clients.get(index);
+
+            clientRestInfo = new OpenAcdClientRestInfo(client);
+            clientsRestInfo.add(clientRestInfo);
+        }
+
+        // create metadata about results
+        MetadataRestInfo metadata = new MetadataRestInfo(paginationInfo);
+        return metadata;
+    }
+
+    private void sortClients(List<OpenAcdClient> clients) {
+        // sort groups if requested
+        SortInfo sortInfo = RestUtilities.calculateSorting(m_form);
+
+        if (!sortInfo.getSort()) {
+            return;
+        }
+
+        SortField sortField = SortField.toSortField(sortInfo.getSortField());
+
+        if (sortInfo.getDirectionForward()) {
+
+            switch (sortField) {
+            case NAME:
+                Collections.sort(clients, new Comparator() {
+
+                    public int compare(Object object1, Object object2) {
+                        OpenAcdClient client1 = (OpenAcdClient) object1;
+                        OpenAcdClient client2 = (OpenAcdClient) object2;
+                        return client1.getName().compareToIgnoreCase(client2.getName());
+                    }
+
+                });
+                break;
+
+            case DESCRIPTION:
+                Collections.sort(clients, new Comparator() {
+
+                    public int compare(Object object1, Object object2) {
+                        OpenAcdClient client1 = (OpenAcdClient) object1;
+                        OpenAcdClient client2 = (OpenAcdClient) object2;
+                        return client1.getDescription().compareToIgnoreCase(client2.getDescription());
+                    }
+
+                });
+                break;
+
+            default:
+                break;
+            }
+        } else {
+            // must be reverse
+            switch (sortField) {
+            case NAME:
+                Collections.sort(clients, new Comparator() {
+
+                    public int compare(Object object1, Object object2) {
+                        OpenAcdClient client1 = (OpenAcdClient) object1;
+                        OpenAcdClient client2 = (OpenAcdClient) object2;
+                        return client2.getName().compareToIgnoreCase(client1.getName());
+                    }
+
+                });
+                break;
+
+            case DESCRIPTION:
+                Collections.sort(clients, new Comparator() {
+
+                    public int compare(Object object1, Object object2) {
+                        OpenAcdClient client1 = (OpenAcdClient) object1;
+                        OpenAcdClient client2 = (OpenAcdClient) object2;
+                        return client2.getDescription().compareToIgnoreCase(client1.getDescription());
+                    }
+
+                });
+                break;
+
+            default:
+                break;
+            }
+        }
+    }
+
+    private void updateClient(OpenAcdClient client, OpenAcdClientRestInfo clientRestInfo)
+        throws ResourceException {
+        String tempString;
+
+        // do not allow empty name
+        tempString = clientRestInfo.getName();
+        if (!tempString.isEmpty()) {
+            client.setName(tempString);
+        }
+
+        client.setDescription(clientRestInfo.getDescription());
+    }
+
+    private OpenAcdClient createClient(OpenAcdClientRestInfo clientRestInfo) throws ResourceException {
+        OpenAcdClient client = new OpenAcdClient();
+
+        // copy fields from rest info
+        client.setName(clientRestInfo.getName());
+        client.setDescription(clientRestInfo.getDescription());
+        client.setIdentity(clientRestInfo.getIdentity());
+
+        return client;
+    }
+
+    // REST Representations
+    // --------------------
+
+    static class OpenAcdClientsRepresentation extends XStreamRepresentation<OpenAcdClientsBundleRestInfo> {
+
+        public OpenAcdClientsRepresentation(MediaType mediaType, OpenAcdClientsBundleRestInfo object) {
+            super(mediaType, object);
+        }
+
+        public OpenAcdClientsRepresentation(Representation representation) {
+            super(representation);
+        }
+
+        @Override
+        protected void configureXStream(XStream xstream) {
+            xstream.alias(ELEMENT_NAME_CLIENTBUNDLE, OpenAcdClientsBundleRestInfo.class);
+            xstream.alias(ELEMENT_NAME_CLIENT, OpenAcdClientRestInfo.class);
+        }
+    }
+
+    static class OpenAcdClientRepresentation extends XStreamRepresentation<OpenAcdClientRestInfo> {
+
+        public OpenAcdClientRepresentation(MediaType mediaType, OpenAcdClientRestInfo object) {
+            super(mediaType, object);
+        }
+
+        public OpenAcdClientRepresentation(Representation representation) {
+            super(representation);
+        }
+
+        @Override
+        protected void configureXStream(XStream xstream) {
+            xstream.alias(ELEMENT_NAME_CLIENT, OpenAcdClientRestInfo.class);
+        }
+    }
+
+    // REST info objects
+    // -----------------
+
+    static class OpenAcdClientsBundleRestInfo {
+        private final MetadataRestInfo m_metadata;
+        private final List<OpenAcdClientRestInfo> m_clients;
+
+        public OpenAcdClientsBundleRestInfo(List<OpenAcdClientRestInfo> clients, MetadataRestInfo metadata) {
+            m_metadata = metadata;
+            m_clients = clients;
+        }
+
+        public MetadataRestInfo getMetadata() {
+            return m_metadata;
+        }
+
+        public List<OpenAcdClientRestInfo> getClients() {
+            return m_clients;
+        }
+    }
+
+    // Injected objects
+    // ----------------
+
+    @Required
+    public void setOpenAcdContext(OpenAcdContext openAcdContext) {
+        m_openAcdContext = openAcdContext;
+    }
+
+}
