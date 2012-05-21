@@ -54,7 +54,7 @@ public class PermissionsResource extends UserResource {
 
     // use to define all possible sort fields
     private enum SortField {
-        NAME, DESCRIPTION, LABEL, BUILTIN, NONE;
+        NAME, DESCRIPTION, LABEL, DEFAULTVALUE, NONE;
 
         public static SortField toSortField(String fieldString) {
             if (fieldString == null) {
@@ -298,13 +298,13 @@ public class PermissionsResource extends UserResource {
                 });
                 break;
                 
-            case BUILTIN:
+            case DEFAULTVALUE:
                 Collections.sort(permissions, new Comparator() {
 
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(Boolean.toString(permission1.isBuiltIn()),Boolean.toString(permission2.isBuiltIn()));
+                        return RestUtilities.compareIgnoreCaseNullSafe(Boolean.toString(permission1.getDefaultValue()),Boolean.toString(permission2.getDefaultValue()));
                     }
 
                 });
@@ -350,13 +350,13 @@ public class PermissionsResource extends UserResource {
                 });
                 break;
                 
-            case BUILTIN:
+            case DEFAULTVALUE:
                 Collections.sort(permissions, new Comparator() {
 
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(Boolean.toString(permission2.isBuiltIn()),Boolean.toString(permission1.isBuiltIn()));
+                        return RestUtilities.compareIgnoreCaseNullSafe(Boolean.toString(permission2.getDefaultValue()),Boolean.toString(permission1.getDefaultValue()));
                     }
 
                 });
