@@ -172,13 +172,13 @@ public class OpenAcdLinesResource extends UserResource {
 
         // validate input for update or create
         ValidationInfo validationInfo = validate(lineRestInfo);
-
+        
         if (!validationInfo.valid) {
             RestUtilities.setResponseError(getResponse(), validationInfo.responseCode, validationInfo.message);
             return;
         }
 
-
+        
         // if have id then update single
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -268,38 +268,47 @@ public class OpenAcdLinesResource extends UserResource {
         String ext = restInfo.getExtension();
         String did = restInfo.getDIDNumber();
         String alias = restInfo.getAlias();
-        for (int i = 0; i < name.length(); i++) {
-            if (name.charAt(i) == ' ') {
-                validationInfo.valid = false;
-                validationInfo.message = "Validation Error: 'Name' must only contain letters, numbers, dashes, underscores, and symbols";
-                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
-            }
+        
+        if (!StringUtils.isEmpty(name)) {
+	        for (int i = 0; i < name.length(); i++) {
+	            if (name.charAt(i) == ' ') {
+	                validationInfo.valid = false;
+	                validationInfo.message = "Validation Error: 'Name' must only contain letters, numbers, dashes, underscores, and symbols";
+	                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+	            }
+	        }
         }
 
-        for (int i = 0; i < ext.length(); i++) {
-            if ((!Character.isDigit(ext.charAt(i)))) {
-                validationInfo.valid = false;
-                validationInfo.message = "Validation Error: 'Extension' must only contain numbers";
-                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
-            }
+        if (!StringUtils.isEmpty(ext)) {
+	        for (int i = 0; i < ext.length(); i++) {
+	            if ((!Character.isDigit(ext.charAt(i)))) {
+	                validationInfo.valid = false;
+	                validationInfo.message = "Validation Error: 'Extension' must only contain numbers";
+	                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+	            }
+	        }
         }
 
-        for (int i = 0; i < did.length(); i++) {
-            if ((!Character.isDigit(did.charAt(i)))) {
-                validationInfo.valid = false;
-                validationInfo.message = "Validation Error: 'DID Number' must only contain numbers";
-                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
-            }
+        if (!StringUtils.isEmpty(did)) {
+	        for (int i = 0; i < did.length(); i++) {
+	            if ((!Character.isDigit(did.charAt(i)))) {
+	                validationInfo.valid = false;
+	                validationInfo.message = "Validation Error: 'DID Number' must only contain numbers";
+	                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+	            }
+	        }
         }
 
-        for (int i = 0; i < alias.length(); i++) {
-            if ((!Character.isDigit(alias.charAt(i)))) {
-                validationInfo.valid = false;
-                validationInfo.message = "Validation Error: 'Alias' must only contain numbers";
-                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
-            }
+        if (!StringUtils.isEmpty(alias)) {
+	        for (int i = 0; i < alias.length(); i++) {
+	            if ((!Character.isDigit(alias.charAt(i)))) {
+	                validationInfo.valid = false;
+	                validationInfo.message = "Validation Error: 'Alias' must only contain numbers";
+	                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+	            }
+	        }
         }
-
+        
         return validationInfo;
     }
 
