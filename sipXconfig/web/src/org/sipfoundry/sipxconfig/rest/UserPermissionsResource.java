@@ -42,7 +42,7 @@ import org.sipfoundry.sipxconfig.permission.Permission;
 import org.sipfoundry.sipxconfig.permission.PermissionManager;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.MetadataRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.PaginationInfo;
-import org.sipfoundry.sipxconfig.rest.RestUtilities.SettingBooleanRestInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.SettingPermissionRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SortInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.ValidationInfo;
 import org.springframework.beans.factory.annotation.Required;
@@ -160,13 +160,8 @@ public class UserPermissionsResource extends UserResource {
             }
         } else {
             // process request for all
-            users = getCoreContext().loadUsersByPage(1, getCoreContext().getAllUsersCount()); // no
-                                                                                              // GetUsers()
-                                                                                              // in
-                                                                                              // coreContext,
-                                                                                              // instead
-                                                                                              // some
-                                                                                              // subgroups
+            // no GetUsers() in coreContext, instead some subgroups
+            users = getCoreContext().loadUsersByPage(1, getCoreContext().getAllUsersCount());
         }
 
         List<UserPermissionRestInfoFull> userPermissionsRestInfo = new ArrayList<UserPermissionRestInfoFull>();
@@ -257,7 +252,7 @@ public class UserPermissionsResource extends UserResource {
 
     private UserPermissionRestInfoFull createUserPermissionRestInfo(User user) {
         UserPermissionRestInfoFull userPermissionRestInfo = null;
-        List<SettingBooleanRestInfo> settings;
+        List<SettingPermissionRestInfo> settings;
 
         settings = createSettingsRestInfo(user);
         userPermissionRestInfo = new UserPermissionRestInfoFull(user, settings);
@@ -265,11 +260,12 @@ public class UserPermissionsResource extends UserResource {
         return userPermissionRestInfo;
     }
 
-    private List<SettingBooleanRestInfo> createSettingsRestInfo(User user) {
-        List<SettingBooleanRestInfo> settings = new ArrayList<SettingBooleanRestInfo>();
-        SettingBooleanRestInfo settingRestInfo = null;
+    private List<SettingPermissionRestInfo> createSettingsRestInfo(User user) {
+        List<SettingPermissionRestInfo> settings = new ArrayList<SettingPermissionRestInfo>();
+        SettingPermissionRestInfo settingRestInfo = null;
         Collection<Permission> permissions;
         String permissionName;
+        String permissionLabel;
         String permissionValue;
         boolean defaultValue;
 
@@ -278,12 +274,11 @@ public class UserPermissionsResource extends UserResource {
         // settings value for permissions are ENABLE or DISABLE instead of boolean
         for (Permission permission : permissions) {
             permissionName = permission.getName();
+            permissionLabel = permission.getLabel();
 
             try {
                 // empty return means setting is at default (unless error in input to
                 // getSettingValue)
-                // permissionValue =
-                // group.getSettingValue(PermissionName.findByName(permissionName).getPath());
                 permissionValue = user.getSettingValue(permission.getSettingPath());
             } catch (Exception exception) {
                 permissionValue = "GetSettingValue error: " + exception.getLocalizedMessage();
@@ -291,7 +286,8 @@ public class UserPermissionsResource extends UserResource {
 
             defaultValue = permission.getDefaultValue();
 
-            settingRestInfo = new SettingBooleanRestInfo(permissionName, permissionValue, defaultValue);
+            settingRestInfo = new SettingPermissionRestInfo(permissionName, permissionLabel, permissionValue,
+                    defaultValue);
             settings.add(settingRestInfo);
         }
 
@@ -399,7 +395,7 @@ public class UserPermissionsResource extends UserResource {
         Permission permission;
 
         // update each permission setting
-        for (SettingBooleanRestInfo settingRestInfo : userPermissionRestInfo.getPermissions()) {
+        for (SettingPermissionRestInfo settingRestInfo : userPermissionRestInfo.getPermissions()) {
             permission = m_permissionManager.getPermissionByName(settingRestInfo.getName());
             user.setSettingValue(permission.getSettingPath(), settingRestInfo.getValue());
         }
@@ -422,7 +418,7 @@ public class UserPermissionsResource extends UserResource {
         protected void configureXStream(XStream xstream) {
             xstream.alias("user-permission", UserPermissionsBundleRestInfo.class);
             xstream.alias("user", UserPermissionRestInfoFull.class);
-            xstream.alias("setting", SettingBooleanRestInfo.class);
+            xstream.alias("setting", SettingPermissionRestInfo.class);
         }
     }
 
@@ -439,7 +435,7 @@ public class UserPermissionsResource extends UserResource {
         @Override
         protected void configureXStream(XStream xstream) {
             xstream.alias("user", UserPermissionRestInfoFull.class);
-            xstream.alias("setting", SettingBooleanRestInfo.class);
+            xstream.alias("setting", SettingPermissionRestInfo.class);
         }
     }
 
@@ -490,15 +486,15 @@ public class UserPermissionsResource extends UserResource {
     }
 
     static class UserPermissionRestInfoFull extends UserRestInfo {
-        private final List<SettingBooleanRestInfo> m_permissions;
+        private final List<SettingPermissionRestInfo> m_permissions;
 
-        public UserPermissionRestInfoFull(User user, List<SettingBooleanRestInfo> settingsRestInfo) {
+        public UserPermissionRestInfoFull(User user, List<SettingPermissionRestInfo> settingsRestInfo) {
             super(user);
 
             m_permissions = settingsRestInfo;
         }
 
-        public List<SettingBooleanRestInfo> getPermissions() {
+        public List<SettingPermissionRestInfo> getPermissions() {
             return m_permissions;
         }
     }

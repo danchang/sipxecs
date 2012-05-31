@@ -41,7 +41,7 @@ import org.sipfoundry.sipxconfig.permission.Permission;
 import org.sipfoundry.sipxconfig.permission.PermissionManager;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.MetadataRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.PaginationInfo;
-import org.sipfoundry.sipxconfig.rest.RestUtilities.SettingBooleanRestInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.SettingPermissionRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SortInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.UserGroupPermissionRestInfoFull;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.ValidationInfo;
@@ -217,7 +217,7 @@ public class UserGroupPermissionsResource extends UserResource {
 
     private UserGroupPermissionRestInfoFull createUserGroupPermissionRestInfo(Group group) {
         UserGroupPermissionRestInfoFull userGroupPermissionRestInfo = null;
-        List<SettingBooleanRestInfo> settings;
+        List<SettingPermissionRestInfo> settings;
 
         settings = createSettingsRestInfo(group);
         userGroupPermissionRestInfo = new UserGroupPermissionRestInfoFull(group, settings);
@@ -225,11 +225,12 @@ public class UserGroupPermissionsResource extends UserResource {
         return userGroupPermissionRestInfo;
     }
 
-    private List<SettingBooleanRestInfo> createSettingsRestInfo(Group group) {
-        List<SettingBooleanRestInfo> settings = new ArrayList<SettingBooleanRestInfo>();
-        SettingBooleanRestInfo settingRestInfo = null;
+    private List<SettingPermissionRestInfo> createSettingsRestInfo(Group group) {
+        List<SettingPermissionRestInfo> settings = new ArrayList<SettingPermissionRestInfo>();
+        SettingPermissionRestInfo settingRestInfo = null;
         Collection<Permission> permissions;
         String permissionName;
+        String permissionLabel;
         String permissionValue;
         boolean defaultValue;
 
@@ -238,12 +239,11 @@ public class UserGroupPermissionsResource extends UserResource {
         // settings value for permissions are ENABLE or DISABLE instead of boolean
         for (Permission permission : permissions) {
             permissionName = permission.getName();
+            permissionLabel = permission.getLabel();
 
             try {
                 // empty return means setting is at default (unless error in input to
                 // getSettingValue)
-                // permissionValue =
-                // group.getSettingValue(PermissionName.findByName(permissionName).getPath());
                 permissionValue = group.getSettingValue(permission.getSettingPath());
             } catch (Exception exception) {
                 permissionValue = "GetSettingValue error: " + exception.getLocalizedMessage();
@@ -251,7 +251,8 @@ public class UserGroupPermissionsResource extends UserResource {
 
             defaultValue = permission.getDefaultValue();
 
-            settingRestInfo = new SettingBooleanRestInfo(permissionName, permissionValue, defaultValue);
+            settingRestInfo = new SettingPermissionRestInfo(permissionName, permissionLabel, permissionValue,
+                    defaultValue);
             settings.add(settingRestInfo);
         }
 
@@ -350,7 +351,7 @@ public class UserGroupPermissionsResource extends UserResource {
         Permission permission;
 
         // update each permission setting
-        for (SettingBooleanRestInfo settingRestInfo : userGroupPermissionRestInfo.getPermissions()) {
+        for (SettingPermissionRestInfo settingRestInfo : userGroupPermissionRestInfo.getPermissions()) {
             permission = m_permissionManager.getPermissionByName(settingRestInfo.getName());
             userGroup.setSettingValue(permission.getSettingPath(), settingRestInfo.getValue());
         }
@@ -374,7 +375,7 @@ public class UserGroupPermissionsResource extends UserResource {
         protected void configureXStream(XStream xstream) {
             xstream.alias("user-group-permission", UserGroupPermissionsBundleRestInfo.class);
             xstream.alias("group", UserGroupPermissionRestInfoFull.class);
-            xstream.alias("setting", SettingBooleanRestInfo.class);
+            xstream.alias("setting", SettingPermissionRestInfo.class);
         }
     }
 
@@ -391,7 +392,7 @@ public class UserGroupPermissionsResource extends UserResource {
         @Override
         protected void configureXStream(XStream xstream) {
             xstream.alias("group", UserGroupPermissionRestInfoFull.class);
-            xstream.alias("setting", SettingBooleanRestInfo.class);
+            xstream.alias("setting", SettingPermissionRestInfo.class);
         }
     }
 

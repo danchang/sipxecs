@@ -524,19 +524,25 @@ public class RestUtilities {
         }
     }
 
-    static class SettingBooleanRestInfo {
+    static class SettingPermissionRestInfo {
         private final String m_name;
+        private final String m_label;
         private final String m_value;
         private final boolean m_defaultValue;
 
-        public SettingBooleanRestInfo(String name, String value, boolean defaultValue) {
+        public SettingPermissionRestInfo(String name, String label, String value, boolean defaultValue) {
             m_name = name;
+            m_label = label;
             m_value = value;
             m_defaultValue = defaultValue;
         }
 
         public String getName() {
             return m_name;
+        }
+
+        public String getLabel() {
+            return m_label;
         }
 
         public String getValue() {
@@ -549,15 +555,15 @@ public class RestUtilities {
     }
 
     static class UserGroupPermissionRestInfoFull extends UserGroupRestInfo {
-        private final List<SettingBooleanRestInfo> m_permissions;
+        private final List<SettingPermissionRestInfo> m_permissions;
 
-        public UserGroupPermissionRestInfoFull(Group userGroup, List<SettingBooleanRestInfo> settingsRestInfo) {
+        public UserGroupPermissionRestInfoFull(Group userGroup, List<SettingPermissionRestInfo> settingsRestInfo) {
             super(userGroup);
 
             m_permissions = settingsRestInfo;
         }
 
-        public List<SettingBooleanRestInfo> getPermissions() {
+        public List<SettingPermissionRestInfo> getPermissions() {
             return m_permissions;
         }
     }
