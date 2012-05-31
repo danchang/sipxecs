@@ -65,13 +65,11 @@ public class OpenAcdSkillsResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -82,7 +80,6 @@ public class OpenAcdSkillsResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -115,21 +112,20 @@ public class OpenAcdSkillsResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "ID " + idString + " not found.");
             }
 
             try {
                 skillRestInfo = createSkillRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read Skills failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read Skills failed", exception.getLocalizedMessage());
             }
 
             return new OpenAcdSkillRepresentation(variant.getMediaType(), skillRestInfo);
         }
-
 
         // if not single, process request for all
         List<OpenAcdSkill> skills = m_openAcdContext.getSkills();
@@ -143,11 +139,11 @@ public class OpenAcdSkillsResource extends UserResource {
         metadataRestInfo = addSkills(skillsRestInfo, skills);
 
         // create final restinfo
-        OpenAcdSkillsBundleRestInfo skillsBundleRestInfo = new OpenAcdSkillsBundleRestInfo(skillsRestInfo, metadataRestInfo);
+        OpenAcdSkillsBundleRestInfo skillsBundleRestInfo = new OpenAcdSkillsBundleRestInfo(skillsRestInfo,
+                metadataRestInfo);
 
         return new OpenAcdSkillsRepresentation(variant.getMediaType(), skillsBundleRestInfo);
     }
-
 
     // PUT - Update or Add single Skill
     // --------------------------------
@@ -167,7 +163,6 @@ public class OpenAcdSkillsResource extends UserResource {
             return;
         }
 
-
         // if have id then update single
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -175,9 +170,9 @@ public class OpenAcdSkillsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 skill = m_openAcdContext.getSkillById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -185,31 +180,31 @@ public class OpenAcdSkillsResource extends UserResource {
             try {
                 updateSkill(skill, skillRestInfo);
                 m_openAcdContext.saveSkill(skill);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update Skill failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update Skill failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Skill", skill.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Skill",
+                    skill.getId());
 
             return;
         }
-
 
         // otherwise add new
         try {
             skill = createSkill(skillRestInfo);
             m_openAcdContext.saveSkill(skill);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create Skill failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create Skill failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Skill", skill.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Skill",
+                skill.getId());
     }
-
 
     // DELETE - Delete single Skill
     // ----------------------------
@@ -225,15 +220,16 @@ public class OpenAcdSkillsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 skill = m_openAcdContext.getSkillById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
             m_openAcdContext.deleteSkill(skill);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Skill", skill.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Skill",
+                    skill.getId());
 
             return;
         }
@@ -241,7 +237,6 @@ public class OpenAcdSkillsResource extends UserResource {
         // no id string
         RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
     }
-
 
     // Helper functions
     // ----------------
@@ -257,7 +252,8 @@ public class OpenAcdSkillsResource extends UserResource {
         String atom = restInfo.getAtom();
 
         for (int i = 0; i < name.length(); i++) {
-            if ((!Character.isLetterOrDigit(name.charAt(i)) && !(Character.getType(name.charAt(i)) == Character.CONNECTOR_PUNCTUATION)) && name.charAt(i) != '-') {
+            if ((!Character.isLetterOrDigit(name.charAt(i)) && !(Character.getType(name.charAt(i)) == Character.CONNECTOR_PUNCTUATION))
+                    && name.charAt(i) != '-') {
                 validationInfo.valid = false;
                 validationInfo.message = "Validation Error: Skill Group 'Name' must only contain letters, numbers, dashes, and underscores";
                 validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
@@ -265,7 +261,8 @@ public class OpenAcdSkillsResource extends UserResource {
         }
 
         for (int i = 0; i < atom.length(); i++) {
-            if ((!Character.isLetterOrDigit(atom.charAt(i)) && !(Character.getType(atom.charAt(i)) == Character.CONNECTOR_PUNCTUATION)) && atom.charAt(i) != '-') {
+            if ((!Character.isLetterOrDigit(atom.charAt(i)) && !(Character.getType(atom.charAt(i)) == Character.CONNECTOR_PUNCTUATION))
+                    && atom.charAt(i) != '-') {
                 validationInfo.valid = false;
                 validationInfo.message = "Validation Error: 'Atom' must only contain letters, numbers, dashes, and underscores";
                 validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
@@ -327,7 +324,7 @@ public class OpenAcdSkillsResource extends UserResource {
 
                 });
                 break;
-                
+
             case GROUPNAME:
                 Collections.sort(skills, new Comparator() {
 
@@ -346,12 +343,12 @@ public class OpenAcdSkillsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdSkill skill1 = (OpenAcdSkill) object1;
                         OpenAcdSkill skill2 = (OpenAcdSkill) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(skill1.getDescription(), skill2.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(skill1.getDescription(),
+                                skill2.getDescription());
                     }
 
                 });
                 break;
-
 
             case ATOM:
                 Collections.sort(skills, new Comparator() {
@@ -365,8 +362,7 @@ public class OpenAcdSkillsResource extends UserResource {
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case NAME:
@@ -380,7 +376,7 @@ public class OpenAcdSkillsResource extends UserResource {
 
                 });
                 break;
-                
+
             case GROUPNAME:
                 Collections.sort(skills, new Comparator() {
 
@@ -399,7 +395,8 @@ public class OpenAcdSkillsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdSkill skill1 = (OpenAcdSkill) object1;
                         OpenAcdSkill skill2 = (OpenAcdSkill) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(skill2.getDescription(), skill1.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(skill2.getDescription(),
+                                skill1.getDescription());
                     }
 
                 });
@@ -459,7 +456,6 @@ public class OpenAcdSkillsResource extends UserResource {
         return skillGroup;
     }
 
-
     // REST Representations
     // --------------------
 
@@ -496,7 +492,6 @@ public class OpenAcdSkillsResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -517,7 +512,6 @@ public class OpenAcdSkillsResource extends UserResource {
             return m_skills;
         }
     }
-
 
     // Injected objects
     // ----------------

@@ -63,13 +63,11 @@ public class PermissionsResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -80,7 +78,6 @@ public class PermissionsResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -106,21 +103,20 @@ public class PermissionsResource extends UserResource {
     @Override
     public Representation represent(Variant variant) throws ResourceException {
         // process request for single
-        // Permissions do not use Id, so must key off Name 
+        // Permissions do not use Id, so must key off Name
         PermissionRestInfoFull permissionRestInfo = null;
         String nameString = (String) getRequest().getAttributes().get("name");
 
         if (nameString != null) {
             try {
                 permissionRestInfo = createPermissionRestInfo(nameString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read permissions failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read permissions failed", exception.getLocalizedMessage());
             }
 
             return new PermissionRepresentation(variant.getMediaType(), permissionRestInfo);
         }
-
 
         // if not single, process request for all
         List<Permission> permissions = new ArrayList<Permission>(m_permissionManager.getPermissions());
@@ -134,11 +130,11 @@ public class PermissionsResource extends UserResource {
         metadataRestInfo = addPermissions(permissionsRestInfo, permissions);
 
         // create final restinfo
-        PermissionsBundleRestInfo permissionsBundleRestInfo = new PermissionsBundleRestInfo(permissionsRestInfo, metadataRestInfo);
+        PermissionsBundleRestInfo permissionsBundleRestInfo = new PermissionsBundleRestInfo(permissionsRestInfo,
+                metadataRestInfo);
 
         return new PermissionsRepresentation(variant.getMediaType(), permissionsBundleRestInfo);
     }
-
 
     // PUT - Update or Add single Skill
     // --------------------------------
@@ -158,16 +154,15 @@ public class PermissionsResource extends UserResource {
             return;
         }
 
-
         // if have id then update single
         String nameString = (String) getRequest().getAttributes().get("name");
 
         if (nameString != null) {
             try {
                 permission = m_permissionManager.getPermissionByName(nameString);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Name " + nameString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Name "
+                        + nameString + " not found.");
                 return;
             }
 
@@ -175,31 +170,31 @@ public class PermissionsResource extends UserResource {
             try {
                 updatePermission(permission, permissionRestInfo);
                 m_permissionManager.saveCallPermission(permission);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update Permission failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update Permission failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Permission", permission.getName());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED,
+                    "Updated Permission", permission.getName());
 
             return;
         }
-
 
         // otherwise add new
         try {
             permission = createPermission(permissionRestInfo);
             m_permissionManager.saveCallPermission(permission);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create Permission failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create Permission failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Permission", permission.getName());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Permission",
+                permission.getName());
     }
-
 
     // DELETE - Delete single Skill
     // ----------------------------
@@ -214,23 +209,24 @@ public class PermissionsResource extends UserResource {
         if (nameString != null) {
             try {
                 permission = m_permissionManager.getPermissionByName(nameString);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Name " + nameString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Name "
+                        + nameString + " not found.");
                 return;
             }
 
             m_permissionManager.deleteCallPermission(permission);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Permission", permission.getName());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED,
+                    "Deleted Permission", permission.getName());
 
             return;
         }
 
         // no id string
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "Name value missing");
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT,
+                "Name value missing");
     }
-
 
     // Helper functions
     // ----------------
@@ -254,7 +250,8 @@ public class PermissionsResource extends UserResource {
         return permissionRestInfo;
     }
 
-    private MetadataRestInfo addPermissions(List<PermissionRestInfoFull> permissionsRestInfo, List<Permission> permissions) {
+    private MetadataRestInfo addPermissions(List<PermissionRestInfoFull> permissionsRestInfo,
+            List<Permission> permissions) {
         PermissionRestInfoFull permissionRestInfo;
 
         // determine pagination
@@ -292,24 +289,27 @@ public class PermissionsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(permission1.getLabel(),permission2.getLabel());
+                        return RestUtilities.compareIgnoreCaseNullSafe(permission1.getLabel(),
+                                permission2.getLabel());
                     }
 
                 });
                 break;
-                
+
             case DEFAULTVALUE:
                 Collections.sort(permissions, new Comparator() {
 
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(Boolean.toString(permission1.getDefaultValue()),Boolean.toString(permission2.getDefaultValue()));
+                        return RestUtilities.compareIgnoreCaseNullSafe(
+                                Boolean.toString(permission1.getDefaultValue()),
+                                Boolean.toString(permission2.getDefaultValue()));
                     }
 
                 });
                 break;
-                
+
             case NAME:
                 Collections.sort(permissions, new Comparator() {
 
@@ -328,14 +328,14 @@ public class PermissionsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(permission1.getDescription(), permission2.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(permission1.getDescription(),
+                                permission2.getDescription());
                     }
 
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case LABEL:
@@ -344,24 +344,27 @@ public class PermissionsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(permission2.getLabel(),permission1.getLabel());
+                        return RestUtilities.compareIgnoreCaseNullSafe(permission2.getLabel(),
+                                permission1.getLabel());
                     }
 
                 });
                 break;
-                
+
             case DEFAULTVALUE:
                 Collections.sort(permissions, new Comparator() {
 
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(Boolean.toString(permission2.getDefaultValue()),Boolean.toString(permission1.getDefaultValue()));
+                        return RestUtilities.compareIgnoreCaseNullSafe(
+                                Boolean.toString(permission2.getDefaultValue()),
+                                Boolean.toString(permission1.getDefaultValue()));
                     }
 
                 });
                 break;
-                
+
             case NAME:
                 Collections.sort(permissions, new Comparator() {
 
@@ -380,7 +383,8 @@ public class PermissionsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(permission2.getDescription(), permission1.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(permission2.getDescription(),
+                                permission1.getDescription());
                     }
 
                 });
@@ -452,7 +456,6 @@ public class PermissionsResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -473,7 +476,6 @@ public class PermissionsResource extends UserResource {
             return m_permissions;
         }
     }
-
 
     // Injected objects
     // ----------------

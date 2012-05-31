@@ -74,13 +74,11 @@ public class UsersResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -91,7 +89,6 @@ public class UsersResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -124,21 +121,20 @@ public class UsersResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "ID " + idString + " not found.");
             }
 
             try {
                 userRestInfo = createUserRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read User failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read User failed", exception.getLocalizedMessage());
             }
 
             return new UserRepresentation(variant.getMediaType(), userRestInfo);
         }
-
 
         // if not single, check if need to filter list
         List<User> users;
@@ -152,15 +148,15 @@ public class UsersResource extends UserResource {
         if ((branchIdString != null) && (!branchIdString.isEmpty())) {
             try {
                 branchId = RestUtilities.getIntFromAttribute(branchIdString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Branch ID " + branchIdString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "Branch ID " + branchIdString + " not found.");
             }
 
-            userIds = getCoreContext().getBranchMembersByPage(branchId, 0, getCoreContext().getBranchMembersCount(branchId));
+            userIds = getCoreContext().getBranchMembersByPage(branchId, 0,
+                    getCoreContext().getBranchMembersCount(branchId));
             users = getUsers(userIds);
-        }
-        else if ((idListString != null) && (!idListString.isEmpty())) {
+        } else if ((idListString != null) && (!idListString.isEmpty())) {
             // searching by id list
             String[] idArray = idListString.split(",");
 
@@ -169,18 +165,23 @@ public class UsersResource extends UserResource {
             for (String id : idArray) {
                 try {
                     idInt = RestUtilities.getIntFromAttribute(id);
-                }
-                catch (Exception exception) {
-                    return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + id + " not found.");
+                } catch (Exception exception) {
+                    return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                            "ID " + id + " not found.");
                 }
 
                 user = getCoreContext().getUser(idInt);
                 users.add(user);
             }
-        }
-        else {
+        } else {
             // process request for all
-            users = getCoreContext().loadUsersByPage(1, getCoreContext().getAllUsersCount()); // no GetUsers() in coreContext, instead some subgroups
+            users = getCoreContext().loadUsersByPage(1, getCoreContext().getAllUsersCount()); // no
+                                                                                              // GetUsers()
+                                                                                              // in
+                                                                                              // coreContext,
+                                                                                              // instead
+                                                                                              // some
+                                                                                              // subgroups
         }
 
         List<UserRestInfoFull> usersRestInfo = new ArrayList<UserRestInfoFull>();
@@ -216,7 +217,6 @@ public class UsersResource extends UserResource {
             return;
         }
 
-
         // if have id then update single
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -224,9 +224,9 @@ public class UsersResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 user = getCoreContext().getUser(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -234,31 +234,31 @@ public class UsersResource extends UserResource {
             try {
                 updateUser(user, userRestInfo);
                 getCoreContext().saveUser(user);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update User failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update User failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated User", user.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated User",
+                    user.getId());
 
             return;
         }
-
 
         // otherwise add new
         try {
             user = createUser(userRestInfo);
             getCoreContext().saveUser(user);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create User failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create User failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created User", user.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created User",
+                user.getId());
     }
-
 
     // DELETE - Delete single User
     // ---------------------------
@@ -274,15 +274,16 @@ public class UsersResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 user = getCoreContext().getUser(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
             getCoreContext().deleteUser(user);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted User", user.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted User",
+                    user.getId());
 
             return;
         }
@@ -290,7 +291,6 @@ public class UsersResource extends UserResource {
         // no id string
         RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
     }
-
 
     // Helper functions
     // ----------------
@@ -365,7 +365,6 @@ public class UsersResource extends UserResource {
         // determine pagination
         PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, users.size());
 
-
         // create list of skill restinfos
         for (int index = paginationInfo.startIndex; index <= paginationInfo.endIndex; index++) {
             user = users.get(index);
@@ -373,7 +372,6 @@ public class UsersResource extends UserResource {
             userRestInfo = createUserRestInfo(user);
             usersRestInfo.add(userRestInfo);
         }
-
 
         // create metadata about agent groups
         MetadataRestInfo metadata = new MetadataRestInfo(paginationInfo);
@@ -417,7 +415,6 @@ public class UsersResource extends UserResource {
                 });
                 break;
 
-
             case FIRSTNAME:
                 Collections.sort(users, new Comparator() {
 
@@ -430,8 +427,7 @@ public class UsersResource extends UserResource {
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case USERNAME:
@@ -501,15 +497,14 @@ public class UsersResource extends UserResource {
 
         // if pin is empty do not save
         if (!userRestInfo.getPin().isEmpty()) {
-            user.setPin(userRestInfo.getPin(), getCoreContext().getAuthorizationRealm());
+            user.setPin(userRestInfo.getPin());
         }
 
         // user may not have any groups
         List<UserGroupRestInfo> userGroupsRestInfo = userRestInfo.getGroups();
         if (userGroupsRestInfo != null) {
             user.setGroups(createUserGroups(userRestInfo));
-        }
-        else {
+        } else {
             user.setGroups(null);
         }
 
@@ -517,16 +512,14 @@ public class UsersResource extends UserResource {
         if (userRestInfo.getBranch() != null) {
             branch = m_branchManager.getBranch(userRestInfo.getBranch().getId());
             user.setBranch(branch);
-        }
-        else {
+        } else {
             user.setBranch(null);
         }
 
         // user may not have any aliases
         if (userRestInfo.getAliases() != null) {
             user.setAliases(createAliases(userRestInfo));
-        }
-        else {
+        } else {
             user.setAliases(null);
         }
     }
@@ -543,7 +536,7 @@ public class UsersResource extends UserResource {
 
         // if pin is empty do not save
         if (!userRestInfo.getPin().isEmpty()) {
-            user.setPin(userRestInfo.getPin(), getCoreContext().getAuthorizationRealm());
+            user.setPin(userRestInfo.getPin());
         }
 
         // user may not have any groups
@@ -588,7 +581,6 @@ public class UsersResource extends UserResource {
         return aliases;
     }
 
-
     // REST Representations
     // --------------------
 
@@ -631,7 +623,6 @@ public class UsersResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -652,7 +643,6 @@ public class UsersResource extends UserResource {
             return m_users;
         }
     }
-
 
     // Injected objects
     // ----------------

@@ -68,13 +68,11 @@ public class UserGroupsResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -85,7 +83,6 @@ public class UserGroupsResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -118,24 +115,24 @@ public class UserGroupsResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "ID " + idString + " not found.");
             }
 
             try {
                 userGroupRestInfo = createUserGroupRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read User Group failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read User Group failed", exception.getLocalizedMessage());
             }
 
             return new UserGroupRepresentation(variant.getMediaType(), userGroupRestInfo);
         }
 
-
         // if not single, process request for all
-        List<Group> userGroups = getCoreContext().getGroups(); // settingsContext.getGroups() requires Resource string value
+        List<Group> userGroups = getCoreContext().getGroups(); // settingsContext.getGroups()
+                                                               // requires Resource string value
 
         List<UserGroupRestInfoFull> userGroupsRestInfo = new ArrayList<UserGroupRestInfoFull>();
         MetadataRestInfo metadataRestInfo;
@@ -147,7 +144,8 @@ public class UserGroupsResource extends UserResource {
         metadataRestInfo = addUserGroups(userGroupsRestInfo, userGroups);
 
         // create final restinfo
-        UserGroupsBundleRestInfo userGroupsBundleRestInfo = new UserGroupsBundleRestInfo(userGroupsRestInfo, metadataRestInfo);
+        UserGroupsBundleRestInfo userGroupsBundleRestInfo = new UserGroupsBundleRestInfo(userGroupsRestInfo,
+                metadataRestInfo);
 
         return new UserGroupsRepresentation(variant.getMediaType(), userGroupsBundleRestInfo);
     }
@@ -170,7 +168,6 @@ public class UserGroupsResource extends UserResource {
             return;
         }
 
-
         // if have id then update single
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -178,9 +175,9 @@ public class UserGroupsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 userGroup = m_settingContext.getGroup(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -188,31 +185,31 @@ public class UserGroupsResource extends UserResource {
             try {
                 updateUserGroup(userGroup, userGroupRestInfo);
                 m_settingContext.saveGroup(userGroup);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update User Group failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update User Group failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated User Group", userGroup.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED,
+                    "Updated User Group", userGroup.getId());
 
             return;
         }
-
 
         // otherwise add new
         try {
             userGroup = createUserGroup(userGroupRestInfo);
             m_settingContext.saveGroup(userGroup);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create User Group failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create User Group failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created User Group", userGroup.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created User Group",
+                userGroup.getId());
     }
-
 
     // DELETE - Delete single Skill
     // ----------------------------
@@ -229,9 +226,9 @@ public class UserGroupsResource extends UserResource {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
                 userGroup = m_settingContext.getGroup(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -239,7 +236,8 @@ public class UserGroupsResource extends UserResource {
             userGroupIds.add(idInt);
             m_settingContext.deleteGroups(userGroupIds);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted User Group", userGroup.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED,
+                    "Deleted User Group", userGroup.getId());
 
             return;
         }
@@ -247,7 +245,6 @@ public class UserGroupsResource extends UserResource {
         // no id string
         RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
     }
-
 
     // Helper functions
     // ----------------
@@ -349,8 +346,7 @@ public class UserGroupsResource extends UserResource {
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case NAME:
@@ -424,7 +420,6 @@ public class UserGroupsResource extends UserResource {
         return branch;
     }
 
-
     // REST Representations
     // --------------------
 
@@ -461,7 +456,6 @@ public class UserGroupsResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -482,7 +476,6 @@ public class UserGroupsResource extends UserResource {
             return m_groups;
         }
     }
-
 
     // Injected objects
     // ----------------

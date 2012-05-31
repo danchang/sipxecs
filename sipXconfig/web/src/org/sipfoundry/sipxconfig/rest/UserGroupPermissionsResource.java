@@ -68,13 +68,11 @@ public class UserGroupPermissionsResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -85,7 +83,6 @@ public class UserGroupPermissionsResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -113,24 +110,24 @@ public class UserGroupPermissionsResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "ID " + idString + " not found.");
             }
 
             try {
                 userGroupPermissionRestInfo = createUserGroupPermissionRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read User Group failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read User Group failed", exception.getLocalizedMessage());
             }
 
             return new UserGroupPermissionRepresentation(variant.getMediaType(), userGroupPermissionRestInfo);
         }
 
-
         // if not single, process request for all
-        List<Group> userGroups = getCoreContext().getGroups(); // settingsContext.getGroups() requires Resource string value
+        List<Group> userGroups = getCoreContext().getGroups(); // settingsContext.getGroups()
+                                                               // requires Resource string value
 
         List<UserGroupPermissionRestInfoFull> userGroupPermissionsRestInfo = new ArrayList<UserGroupPermissionRestInfoFull>();
         MetadataRestInfo metadataRestInfo;
@@ -142,7 +139,8 @@ public class UserGroupPermissionsResource extends UserResource {
         metadataRestInfo = addUserGroups(userGroupPermissionsRestInfo, userGroups);
 
         // create final restinfo
-        UserGroupPermissionsBundleRestInfo userGroupPermissionsBundleRestInfo = new UserGroupPermissionsBundleRestInfo(userGroupPermissionsRestInfo, metadataRestInfo);
+        UserGroupPermissionsBundleRestInfo userGroupPermissionsBundleRestInfo = new UserGroupPermissionsBundleRestInfo(
+                userGroupPermissionsRestInfo, metadataRestInfo);
 
         return new UserGroupPermissionsRepresentation(variant.getMediaType(), userGroupPermissionsBundleRestInfo);
     }
@@ -165,7 +163,6 @@ public class UserGroupPermissionsResource extends UserResource {
             return;
         }
 
-
         // if have id then update single
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -173,9 +170,9 @@ public class UserGroupPermissionsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 userGroup = m_settingContext.getGroup(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -183,22 +180,21 @@ public class UserGroupPermissionsResource extends UserResource {
             try {
                 updateUserGroupPermission(userGroup, userGroupPermissionRestInfo);
                 m_settingContext.saveGroup(userGroup);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update User Group Permissions failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update User Group Permissions failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated User Group Permissions", userGroup.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED,
+                    "Updated User Group Permissions", userGroup.getId());
 
             return;
         }
 
-
         // otherwise error, since no creation of new permissions
         RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Missing ID");
     }
-
 
     // Helper functions
     // ----------------
@@ -244,11 +240,12 @@ public class UserGroupPermissionsResource extends UserResource {
             permissionName = permission.getName();
 
             try {
-                // empty return means setting is at default (unless error in input to getSettingValue)
-                //permissionValue = group.getSettingValue(PermissionName.findByName(permissionName).getPath());
+                // empty return means setting is at default (unless error in input to
+                // getSettingValue)
+                // permissionValue =
+                // group.getSettingValue(PermissionName.findByName(permissionName).getPath());
                 permissionValue = group.getSettingValue(permission.getSettingPath());
-            }
-            catch (Exception exception) {
+            } catch (Exception exception) {
                 permissionValue = "GetSettingValue error: " + exception.getLocalizedMessage();
             }
 
@@ -261,7 +258,8 @@ public class UserGroupPermissionsResource extends UserResource {
         return settings;
     }
 
-    private MetadataRestInfo addUserGroups(List<UserGroupPermissionRestInfoFull> userGroupPermissionsRestInfo, List<Group> userGroups) {
+    private MetadataRestInfo addUserGroups(List<UserGroupPermissionRestInfoFull> userGroupPermissionsRestInfo,
+            List<Group> userGroups) {
         UserGroupPermissionRestInfoFull userGroupPermissionRestInfo;
 
         // determine pagination
@@ -317,8 +315,7 @@ public class UserGroupPermissionsResource extends UserResource {
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case NAME:
@@ -348,7 +345,8 @@ public class UserGroupPermissionsResource extends UserResource {
         }
     }
 
-    private void updateUserGroupPermission(Group userGroup, UserGroupPermissionRestInfoFull userGroupPermissionRestInfo) {
+    private void updateUserGroupPermission(Group userGroup,
+            UserGroupPermissionRestInfoFull userGroupPermissionRestInfo) {
         Permission permission;
 
         // update each permission setting
@@ -358,11 +356,11 @@ public class UserGroupPermissionsResource extends UserResource {
         }
     }
 
-
     // REST Representations
     // --------------------
 
-    static class UserGroupPermissionsRepresentation extends XStreamRepresentation<UserGroupPermissionsBundleRestInfo> {
+    static class UserGroupPermissionsRepresentation extends
+            XStreamRepresentation<UserGroupPermissionsBundleRestInfo> {
 
         public UserGroupPermissionsRepresentation(MediaType mediaType, UserGroupPermissionsBundleRestInfo object) {
             super(mediaType, object);
@@ -397,7 +395,6 @@ public class UserGroupPermissionsResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -405,7 +402,8 @@ public class UserGroupPermissionsResource extends UserResource {
         private final MetadataRestInfo m_metadata;
         private final List<UserGroupPermissionRestInfoFull> m_groups;
 
-        public UserGroupPermissionsBundleRestInfo(List<UserGroupPermissionRestInfoFull> userGroupPermissions, MetadataRestInfo metadata) {
+        public UserGroupPermissionsBundleRestInfo(List<UserGroupPermissionRestInfoFull> userGroupPermissions,
+                MetadataRestInfo metadata) {
             m_metadata = metadata;
             m_groups = userGroupPermissions;
         }
@@ -418,7 +416,6 @@ public class UserGroupPermissionsResource extends UserResource {
             return m_groups;
         }
     }
-
 
     // Injected objects
     // ----------------

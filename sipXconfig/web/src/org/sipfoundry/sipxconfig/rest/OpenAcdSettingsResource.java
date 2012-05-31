@@ -47,7 +47,6 @@ public class OpenAcdSettingsResource extends UserResource {
         getVariants().add(new Variant(APPLICATION_JSON));
     }
 
-
     // Allowed REST operations
     // -----------------------
 
@@ -61,7 +60,6 @@ public class OpenAcdSettingsResource extends UserResource {
         return true;
     }
 
-
     // GET - Retrieve all and single Client
     // -----------------------------------
 
@@ -73,7 +71,6 @@ public class OpenAcdSettingsResource extends UserResource {
 
         return new OpenAcdSettingRepresentation(variant.getMediaType(), settingsRestInfo);
     }
-
 
     // PUT - Update single Setting
     // ---------------------------
@@ -90,23 +87,23 @@ public class OpenAcdSettingsResource extends UserResource {
             settings = m_openAcdContext.getSettings();
             updateSettings(settings, settingRestInfo);
             m_openAcdContext.saveSettings(settings);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Assign Setting failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Assign Setting failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Assigned Setting", settings.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Assigned Setting",
+                settings.getId());
     }
-
 
     // Helper functions
     // ----------------
 
-    private void updateSettings(OpenAcdSettings settings, OpenAcdSettingRestInfo settingRestInfo) throws ResourceException {
+    private void updateSettings(OpenAcdSettings settings, OpenAcdSettingRestInfo settingRestInfo)
+            throws ResourceException {
         settings.setSettingValue("openacd-config/log_level", settingRestInfo.getLogLevel());
     }
-
 
     // REST Representations
     // --------------------
@@ -126,7 +123,6 @@ public class OpenAcdSettingsResource extends UserResource {
             xstream.alias("setting", OpenAcdSettingRestInfo.class);
         }
     }
-
 
     // REST info objects
     // -----------------
@@ -148,7 +144,6 @@ public class OpenAcdSettingsResource extends UserResource {
             return m_logLevel;
         }
     }
-
 
     // Injected objects
     // ----------------

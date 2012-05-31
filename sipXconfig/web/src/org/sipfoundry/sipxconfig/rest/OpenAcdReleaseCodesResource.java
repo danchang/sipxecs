@@ -67,13 +67,11 @@ public class OpenAcdReleaseCodesResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -84,7 +82,6 @@ public class OpenAcdReleaseCodesResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -117,21 +114,20 @@ public class OpenAcdReleaseCodesResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "ID " + idString + " not found.");
             }
 
             try {
                 releaseCodeRestInfo = createReleaseCodeRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read Release Code failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read Release Code failed", exception.getLocalizedMessage());
             }
 
             return new OpenAcdReleaseCodeRepresentation(variant.getMediaType(), releaseCodeRestInfo);
         }
-
 
         // if not single, process request for list
         List<OpenAcdReleaseCode> releaseCodes = m_openAcdContext.getReleaseCodes();
@@ -145,11 +141,11 @@ public class OpenAcdReleaseCodesResource extends UserResource {
         metadataRestInfo = addReleaseCodes(releaseCodesRestInfo, releaseCodes);
 
         // create final restinfo
-        OpenAcdReleaseCodesBundleRestInfo releaseCodesBundleRestInfo = new OpenAcdReleaseCodesBundleRestInfo(releaseCodesRestInfo, metadataRestInfo);
+        OpenAcdReleaseCodesBundleRestInfo releaseCodesBundleRestInfo = new OpenAcdReleaseCodesBundleRestInfo(
+                releaseCodesRestInfo, metadataRestInfo);
 
         return new OpenAcdReleaseCodesRepresentation(variant.getMediaType(), releaseCodesBundleRestInfo);
     }
-
 
     // PUT - Update or Add single Skill
     // --------------------------------
@@ -169,7 +165,6 @@ public class OpenAcdReleaseCodesResource extends UserResource {
             return;
         }
 
-
         // if have id then update single
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -177,9 +172,9 @@ public class OpenAcdReleaseCodesResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 releaseCode = m_openAcdContext.getReleaseCodeById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -187,31 +182,31 @@ public class OpenAcdReleaseCodesResource extends UserResource {
             try {
                 updateReleaseCode(releaseCode, releaseCodeRestInfo);
                 m_openAcdContext.saveReleaseCode(releaseCode);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update Release Code failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update Release Code failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Release Code", releaseCode.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED,
+                    "Updated Release Code", releaseCode.getId());
 
             return;
         }
-
 
         // otherwise add new
         try {
             releaseCode = createReleaseCode(releaseCodeRestInfo);
             m_openAcdContext.saveReleaseCode(releaseCode);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create Release Code failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create Release Code failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Release Code", releaseCode.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Release Code",
+                releaseCode.getId());
     }
-
 
     // DELETE - Delete single Skill
     // ----------------------------
@@ -219,7 +214,8 @@ public class OpenAcdReleaseCodesResource extends UserResource {
     // deleteReleaseCode() not available from openAcdContext
     @Override
     public void removeRepresentations() throws ResourceException {
-        // for some reason release codes are deleted by providing collection of ids, not by providing release code object
+        // for some reason release codes are deleted by providing collection of ids, not by
+        // providing release code object
         Collection<Integer> releaseCodeIds = new HashSet<Integer>();
 
         // get id then delete single
@@ -229,9 +225,9 @@ public class OpenAcdReleaseCodesResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 releaseCodeIds.add(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -244,11 +240,11 @@ public class OpenAcdReleaseCodesResource extends UserResource {
         RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
     }
 
-
     // Helper functions
     // ----------------
 
-    // basic interface level validation of data provided through REST interface for creation or update
+    // basic interface level validation of data provided through REST interface for creation or
+    // update
     // may also contain clean up of input data
     // may create another validation function if different rules needed for update v. create
     private ValidationInfo validate(OpenAcdReleaseCodeRestInfo restInfo) {
@@ -274,15 +270,15 @@ public class OpenAcdReleaseCodesResource extends UserResource {
         try {
             OpenAcdReleaseCode releaseCode = m_openAcdContext.getReleaseCodeById(id);
             releaseCodeRestInfo = new OpenAcdReleaseCodeRestInfo(releaseCode);
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND, "ID " + id + " not found.");
         }
 
         return releaseCodeRestInfo;
     }
 
-    private MetadataRestInfo addReleaseCodes(List<OpenAcdReleaseCodeRestInfo> releaseCodesRestInfo, List<OpenAcdReleaseCode> releaseCodes) {
+    private MetadataRestInfo addReleaseCodes(List<OpenAcdReleaseCodeRestInfo> releaseCodesRestInfo,
+            List<OpenAcdReleaseCode> releaseCodes) {
         OpenAcdReleaseCodeRestInfo releaseCodeRestInfo;
 
         // determine pagination
@@ -320,7 +316,8 @@ public class OpenAcdReleaseCodesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdReleaseCode releaseCode1 = (OpenAcdReleaseCode) object1;
                         OpenAcdReleaseCode releaseCode2 = (OpenAcdReleaseCode) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(releaseCode1.getLabel(), releaseCode2.getLabel());
+                        return RestUtilities.compareIgnoreCaseNullSafe(releaseCode1.getLabel(),
+                                releaseCode2.getLabel());
                     }
 
                 });
@@ -332,14 +329,14 @@ public class OpenAcdReleaseCodesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdReleaseCode releaseCode1 = (OpenAcdReleaseCode) object1;
                         OpenAcdReleaseCode releaseCode2 = (OpenAcdReleaseCode) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(releaseCode1.getDescription(), releaseCode2.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(releaseCode1.getDescription(),
+                                releaseCode2.getDescription());
                     }
 
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case LABEL:
@@ -348,7 +345,8 @@ public class OpenAcdReleaseCodesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdReleaseCode releaseCode1 = (OpenAcdReleaseCode) object1;
                         OpenAcdReleaseCode releaseCode2 = (OpenAcdReleaseCode) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(releaseCode2.getLabel(), releaseCode1.getLabel());
+                        return RestUtilities.compareIgnoreCaseNullSafe(releaseCode2.getLabel(),
+                                releaseCode1.getLabel());
                     }
 
                 });
@@ -360,7 +358,8 @@ public class OpenAcdReleaseCodesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdReleaseCode releaseCode1 = (OpenAcdReleaseCode) object1;
                         OpenAcdReleaseCode releaseCode2 = (OpenAcdReleaseCode) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(releaseCode2.getDescription(), releaseCode1.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(releaseCode2.getDescription(),
+                                releaseCode1.getDescription());
                     }
 
                 });
@@ -369,7 +368,8 @@ public class OpenAcdReleaseCodesResource extends UserResource {
         }
     }
 
-    private void updateReleaseCode(OpenAcdReleaseCode releaseCode, OpenAcdReleaseCodeRestInfo releaseCodeRestInfo) throws ResourceException {
+    private void updateReleaseCode(OpenAcdReleaseCode releaseCode, OpenAcdReleaseCodeRestInfo releaseCodeRestInfo)
+            throws ResourceException {
         String tempString;
 
         // do not allow empty name
@@ -383,7 +383,8 @@ public class OpenAcdReleaseCodesResource extends UserResource {
         releaseCode.setBias(releaseCodeRestInfo.getBias());
     }
 
-    private OpenAcdReleaseCode createReleaseCode(OpenAcdReleaseCodeRestInfo releaseCodeRestInfo) throws ResourceException {
+    private OpenAcdReleaseCode createReleaseCode(OpenAcdReleaseCodeRestInfo releaseCodeRestInfo)
+            throws ResourceException {
         OpenAcdReleaseCode releaseCode = new OpenAcdReleaseCode();
 
         // copy fields from rest info
@@ -393,7 +394,6 @@ public class OpenAcdReleaseCodesResource extends UserResource {
 
         return releaseCode;
     }
-
 
     // REST Representations
     // --------------------
@@ -431,7 +431,6 @@ public class OpenAcdReleaseCodesResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -439,7 +438,8 @@ public class OpenAcdReleaseCodesResource extends UserResource {
         private final MetadataRestInfo m_metadata;
         private final List<OpenAcdReleaseCodeRestInfo> m_releaseCodes;
 
-        public OpenAcdReleaseCodesBundleRestInfo(List<OpenAcdReleaseCodeRestInfo> releaseCodes, MetadataRestInfo metadata) {
+        public OpenAcdReleaseCodesBundleRestInfo(List<OpenAcdReleaseCodeRestInfo> releaseCodes,
+                MetadataRestInfo metadata) {
             m_metadata = metadata;
             m_releaseCodes = releaseCodes;
         }
@@ -452,7 +452,6 @@ public class OpenAcdReleaseCodesResource extends UserResource {
             return m_releaseCodes;
         }
     }
-
 
     // Injected objects
     // ----------------

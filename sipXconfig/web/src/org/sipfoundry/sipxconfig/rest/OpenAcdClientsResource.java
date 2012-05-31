@@ -65,13 +65,11 @@ public class OpenAcdClientsResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -82,7 +80,6 @@ public class OpenAcdClientsResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -115,21 +112,20 @@ public class OpenAcdClientsResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "ID " + idString + " not found.");
             }
 
             try {
                 clientRestInfo = createClientRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read Client failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read Client failed", exception.getLocalizedMessage());
             }
 
             return new OpenAcdClientRepresentation(variant.getMediaType(), clientRestInfo);
         }
-
 
         // if not single, process request for list
         List<OpenAcdClient> clients = m_openAcdContext.getClients();
@@ -143,11 +139,11 @@ public class OpenAcdClientsResource extends UserResource {
         metadataRestInfo = addClients(clientsRestInfo, clients);
 
         // create final restinfo
-        OpenAcdClientsBundleRestInfo clientsBundleRestInfo = new OpenAcdClientsBundleRestInfo(clientsRestInfo, metadataRestInfo);
+        OpenAcdClientsBundleRestInfo clientsBundleRestInfo = new OpenAcdClientsBundleRestInfo(clientsRestInfo,
+                metadataRestInfo);
 
         return new OpenAcdClientsRepresentation(variant.getMediaType(), clientsBundleRestInfo);
     }
-
 
     // PUT - Update or Add single Client
     // ---------------------------------
@@ -167,7 +163,6 @@ public class OpenAcdClientsResource extends UserResource {
             return;
         }
 
-
         // if have id then update single
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -175,9 +170,9 @@ public class OpenAcdClientsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 client = m_openAcdContext.getClientById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -185,31 +180,31 @@ public class OpenAcdClientsResource extends UserResource {
             try {
                 updateClient(client, clientRestInfo);
                 m_openAcdContext.saveClient(client);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update Client failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update Client failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Client", client.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Client",
+                    client.getId());
 
             return;
         }
-
 
         // otherwise add new
         try {
             client = createClient(clientRestInfo);
             m_openAcdContext.saveClient(client);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create Client failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create Client failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Client", client.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Client",
+                client.getId());
     }
-
 
     // DELETE - Delete single Client
     // -----------------------------
@@ -225,15 +220,16 @@ public class OpenAcdClientsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 client = m_openAcdContext.getClientById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
             m_openAcdContext.deleteClient(client);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Client", client.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Client",
+                    client.getId());
 
             return;
         }
@@ -241,7 +237,6 @@ public class OpenAcdClientsResource extends UserResource {
         // no id string
         RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
     }
-
 
     // Helper functions
     // ----------------
@@ -256,7 +251,8 @@ public class OpenAcdClientsResource extends UserResource {
         String identity = restInfo.getIdentity();
 
         for (int i = 0; i < identity.length(); i++) {
-            if ((!Character.isLetterOrDigit(identity.charAt(i)) && !(Character.getType(identity.charAt(i)) == Character.CONNECTOR_PUNCTUATION)) && identity.charAt(i) != '-') {
+            if ((!Character.isLetterOrDigit(identity.charAt(i)) && !(Character.getType(identity.charAt(i)) == Character.CONNECTOR_PUNCTUATION))
+                    && identity.charAt(i) != '-') {
                 validationInfo.valid = false;
                 validationInfo.message = "Validation Error: 'Identity' must only contain letters, numbers, dashes, and underscores";
                 validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
@@ -272,8 +268,7 @@ public class OpenAcdClientsResource extends UserResource {
         try {
             OpenAcdClient client = m_openAcdContext.getClientById(id);
             clientRestInfo = new OpenAcdClientRestInfo(client);
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND, "ID " + id + " not found.");
         }
 
@@ -336,8 +331,7 @@ public class OpenAcdClientsResource extends UserResource {
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case NAME:
@@ -390,7 +384,6 @@ public class OpenAcdClientsResource extends UserResource {
         return client;
     }
 
-
     // REST Representations
     // --------------------
 
@@ -427,7 +420,6 @@ public class OpenAcdClientsResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -448,7 +440,6 @@ public class OpenAcdClientsResource extends UserResource {
             return m_clients;
         }
     }
-
 
     // Injected objects
     // ----------------

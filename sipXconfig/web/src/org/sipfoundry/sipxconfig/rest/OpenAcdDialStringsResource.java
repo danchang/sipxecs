@@ -64,8 +64,7 @@ public class OpenAcdDialStringsResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
@@ -79,7 +78,6 @@ public class OpenAcdDialStringsResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -112,16 +110,16 @@ public class OpenAcdDialStringsResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "ID " + idString + " not found.");
             }
 
             try {
                 dialStringRestInfo = createDialStringRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read Settings failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read Settings failed", exception.getLocalizedMessage());
             }
 
             return new OpenAcdDialStringRepresentation(variant.getMediaType(), dialStringRestInfo);
@@ -139,11 +137,11 @@ public class OpenAcdDialStringsResource extends UserResource {
         metadataRestInfo = addDialStrings(dialStringsRestInfo, dialStrings);
 
         // create final restinfo
-        OpenAcdDialStringsBundleRestInfo dialStringsBundleRestInfo = new OpenAcdDialStringsBundleRestInfo(dialStringsRestInfo, metadataRestInfo);
+        OpenAcdDialStringsBundleRestInfo dialStringsBundleRestInfo = new OpenAcdDialStringsBundleRestInfo(
+                dialStringsRestInfo, metadataRestInfo);
 
         return new OpenAcdDialStringsRepresentation(variant.getMediaType(), dialStringsBundleRestInfo);
     }
-
 
     // PUT - Update or Add single Dial String
     // --------------------------------------
@@ -162,7 +160,6 @@ public class OpenAcdDialStringsResource extends UserResource {
             return;
         }
 
-
         // if have id then update single
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -170,9 +167,9 @@ public class OpenAcdDialStringsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 dialString = (OpenAcdCommand) m_openAcdContext.getExtensionById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -180,31 +177,31 @@ public class OpenAcdDialStringsResource extends UserResource {
             try {
                 updateDialString(dialString, dialStringRestInfo);
                 m_openAcdContext.saveExtension(dialString);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update Setting failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update Setting failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Settings", dialString.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Settings",
+                    dialString.getId());
 
             return;
         }
-
 
         // otherwise add new
         try {
             dialString = createDialString(dialStringRestInfo);
             m_openAcdContext.saveExtension(dialString);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create Dial String failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create Dial String failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Setting", dialString.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Setting",
+                dialString.getId());
     }
-
 
     // DELETE - Delete single Dial String
     // ----------------------------------
@@ -220,15 +217,16 @@ public class OpenAcdDialStringsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 dialString = (OpenAcdCommand) m_openAcdContext.getExtensionById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
             m_openAcdContext.deleteExtension(dialString);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Client", dialString.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Client",
+                    dialString.getId());
 
             return;
         }
@@ -236,7 +234,6 @@ public class OpenAcdDialStringsResource extends UserResource {
         // no id string
         RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
     }
-
 
     // Helper functions
     // ----------------
@@ -257,8 +254,7 @@ public class OpenAcdDialStringsResource extends UserResource {
         try {
             OpenAcdCommand dialString = (OpenAcdCommand) m_openAcdContext.getExtensionById(id);
             dialStringRestInfo = createDialStringRestInfo(dialString);
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             throw new ResourceException(Status.CLIENT_ERROR_NOT_FOUND, "ID " + id + " not found.");
         }
 
@@ -290,7 +286,8 @@ public class OpenAcdDialStringsResource extends UserResource {
         return customActions;
     }
 
-    private MetadataRestInfo addDialStrings(List<OpenAcdDialStringRestInfo> dialStringsRestInfo, List<OpenAcdCommand> dialStrings) {
+    private MetadataRestInfo addDialStrings(List<OpenAcdDialStringRestInfo> dialStringsRestInfo,
+            List<OpenAcdCommand> dialStrings) {
         OpenAcdDialStringRestInfo dialStringRestInfo;
 
         // determine pagination
@@ -346,8 +343,7 @@ public class OpenAcdDialStringsResource extends UserResource {
                 break;
 
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case NAME:
@@ -377,7 +373,8 @@ public class OpenAcdDialStringsResource extends UserResource {
         }
     }
 
-    private void updateDialString(OpenAcdCommand dialString, OpenAcdDialStringRestInfo dialStringRestInfo) throws ResourceException {
+    private void updateDialString(OpenAcdCommand dialString, OpenAcdDialStringRestInfo dialStringRestInfo)
+            throws ResourceException {
 
         dialString.setName(dialStringRestInfo.getName());
         dialString.setEnabled(dialStringRestInfo.getEnabled());
@@ -385,7 +382,8 @@ public class OpenAcdDialStringsResource extends UserResource {
         dialString.getNumberCondition().setExpression(dialStringRestInfo.getExtension());
 
         for (OpenAcdDialStringActionRestInfo actionRestInfo : dialStringRestInfo.getActions()) {
-            dialString.getNumberCondition().addAction(OpenAcdCommand.createAction(actionRestInfo.getApplication(), actionRestInfo.getApplication()));
+            dialString.getNumberCondition().addAction(
+                    OpenAcdCommand.createAction(actionRestInfo.getApplication(), actionRestInfo.getApplication()));
         }
     }
 
@@ -403,12 +401,12 @@ public class OpenAcdDialStringsResource extends UserResource {
         dialString.getNumberCondition().setExpression(dialStringRestInfo.getExtension());
 
         for (OpenAcdDialStringActionRestInfo actionRestInfo : dialStringRestInfo.getActions()) {
-            dialString.getNumberCondition().addAction(OpenAcdCommand.createAction(actionRestInfo.getApplication(), actionRestInfo.getApplication()));
+            dialString.getNumberCondition().addAction(
+                    OpenAcdCommand.createAction(actionRestInfo.getApplication(), actionRestInfo.getApplication()));
         }
 
         return dialString;
     }
-
 
     // REST Representations
     // --------------------
@@ -433,7 +431,8 @@ public class OpenAcdDialStringsResource extends UserResource {
 
     static class OpenAcdDialStringRepresentation extends XStreamRepresentation<OpenAcdDialStringRestInfo> {
 
-        public OpenAcdDialStringRepresentation(MediaType mediaType, OpenAcdDialStringRestInfo dialStringsBundleRestInfo) {
+        public OpenAcdDialStringRepresentation(MediaType mediaType,
+                OpenAcdDialStringRestInfo dialStringsBundleRestInfo) {
             super(mediaType, dialStringsBundleRestInfo);
         }
 
@@ -448,7 +447,6 @@ public class OpenAcdDialStringsResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -456,7 +454,8 @@ public class OpenAcdDialStringsResource extends UserResource {
         private final MetadataRestInfo m_metadata;
         private final List<OpenAcdDialStringRestInfo> m_dialStrings;
 
-        public OpenAcdDialStringsBundleRestInfo(List<OpenAcdDialStringRestInfo> dialStrings, MetadataRestInfo metadata) {
+        public OpenAcdDialStringsBundleRestInfo(List<OpenAcdDialStringRestInfo> dialStrings,
+                MetadataRestInfo metadata) {
             m_metadata = metadata;
             m_dialStrings = dialStrings;
         }
@@ -478,7 +477,8 @@ public class OpenAcdDialStringsResource extends UserResource {
         private final String m_extension;
         private final List<OpenAcdDialStringActionRestInfo> m_actions;
 
-        public OpenAcdDialStringRestInfo(OpenAcdCommand dial, List<OpenAcdDialStringActionRestInfo> dialStringActionsRestInfo) {
+        public OpenAcdDialStringRestInfo(OpenAcdCommand dial,
+                List<OpenAcdDialStringActionRestInfo> dialStringActionsRestInfo) {
             m_id = dial.getId();
             m_name = dial.getName();
             m_enabled = dial.isEnabled();

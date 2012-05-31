@@ -76,13 +76,11 @@ public class OpenAcdQueueGroupsResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -93,7 +91,6 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -126,21 +123,20 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_INPUT, "ID " + idString
+                        + " not found.");
             }
 
             try {
                 queueGroupRestInfo = createQueueGroupRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED, "Read Queue Group failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED,
+                        "Read Queue Group failed", exception.getLocalizedMessage());
             }
 
             return new OpenAcdQueueGroupRepresentation(variant.getMediaType(), queueGroupRestInfo);
         }
-
 
         // if not single, process request for all
         List<OpenAcdQueueGroup> queueGroups = m_openAcdContext.getQueueGroups();
@@ -154,11 +150,11 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         metadataRestInfo = addQueueGroups(queueGroupsRestInfo, queueGroups);
 
         // create final restinfo
-        OpenAcdQueueGroupsBundleRestInfo queueGroupsBundleRestInfo = new OpenAcdQueueGroupsBundleRestInfo(queueGroupsRestInfo, metadataRestInfo);
+        OpenAcdQueueGroupsBundleRestInfo queueGroupsBundleRestInfo = new OpenAcdQueueGroupsBundleRestInfo(
+                queueGroupsRestInfo, metadataRestInfo);
 
         return new OpenAcdQueueGroupsRepresentation(variant.getMediaType(), queueGroupsBundleRestInfo);
     }
-
 
     // PUT - Update or Add single Group
     // --------------------------------
@@ -178,7 +174,6 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             return;
         }
 
-
         // if have id then update a single group
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -186,9 +181,9 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 queueGroup = m_openAcdContext.getQueueGroupById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_INPUT, "ID " + idString
+                        + " not found.");
                 return;
             }
 
@@ -196,31 +191,31 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             try {
                 updateQueueGroup(queueGroup, queueGroupRestInfo);
                 m_openAcdContext.saveQueueGroup(queueGroup);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_WRITE_FAILED, "Update Queue Group failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_WRITE_FAILED,
+                        "Update Queue Group failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, "Updated Queue", queueGroup.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, "Updated Queue",
+                    queueGroup.getId());
 
             return;
         }
-
 
         // otherwise add new agent group
         try {
             queueGroup = createQueueGroup(queueGroupRestInfo);
             m_openAcdContext.saveQueueGroup(queueGroup);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create Queue Group failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create Queue Group failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Queue Group", queueGroup.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Queue Group",
+                queueGroup.getId());
     }
-
 
     // DELETE - Delete single Group
     // --------------------------------
@@ -236,15 +231,16 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 queueGroup = m_openAcdContext.getQueueGroupById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_INPUT, "ID " + idString
+                        + " not found.");
                 return;
             }
 
             m_openAcdContext.deleteQueueGroup(queueGroup);
 
-            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_DELETED, "Deleted Queue Group", queueGroup.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_DELETED, "Deleted Queue Group",
+                    queueGroup.getId());
 
             return;
         }
@@ -253,17 +249,18 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         RestUtilities.setResponse(getResponse(), ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
     }
 
-
     // Helper functions
     // ----------------
 
-    // basic interface level validation of data provided through REST interface for creation or update
+    // basic interface level validation of data provided through REST interface for creation or
+    // update
     // may also contain clean up of input data
     // may create another validation function if different rules needed for update v. create
     private ValidationInfo validate(OpenAcdQueueGroupRestInfoFull restInfo) {
         ValidationInfo validationInfo = new ValidationInfo();
         List<String> relation = Arrays.asList("is", "isNot");
-        List<String> condition1 = Arrays.asList("available_agents", "eligible_agents", "calls_queued", "queue_position", "hour", "weekday", "client_calls_queued");
+        List<String> condition1 = Arrays.asList("available_agents", "eligible_agents", "calls_queued",
+                "queue_position", "hour", "weekday", "client_calls_queued");
         List<String> condition2 = Arrays.asList("ticks", "client", "media_type", "caller_id", "caller_name");
         List<String> equalityRelation = Arrays.asList("is", "greater", "less");
         List<String> mediaValues = Arrays.asList("voice", "email", "voicemail", "chat");
@@ -273,7 +270,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         // rest mods the hours with 24 to give a new hour, so allow over 23
 
         for (int i = 0; i < name.length(); i++) {
-            if ((!Character.isLetterOrDigit(name.charAt(i)) && !(Character.getType(name.charAt(i)) == Character.CONNECTOR_PUNCTUATION)) && name.charAt(i) != '-') {
+            if ((!Character.isLetterOrDigit(name.charAt(i)) && !(Character.getType(name.charAt(i)) == Character.CONNECTOR_PUNCTUATION))
+                    && name.charAt(i) != '-') {
                 validationInfo.valid = false;
                 validationInfo.message = "Validation Error: 'Name' must only contain letters, numbers, dashes, and underscores";
                 validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
@@ -287,7 +285,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
                 validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
             }
 
-            if (restInfo.getSteps().get(i).getAction().getAction().equals("announce") || restInfo.getSteps().get(i).getAction().getAction().equals("set_priority")) {
+            if (restInfo.getSteps().get(i).getAction().getAction().equals("announce")
+                    || restInfo.getSteps().get(i).getAction().getAction().equals("set_priority")) {
                 if (restInfo.getSteps().get(i).getAction().getActionValue().isEmpty()) {
                     validationInfo.valid = false;
                     validationInfo.message = "Validation Error: 'Action Value' cannot be empty and must only contain numbers and *";
@@ -296,7 +295,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             }
 
             for (int j = 0; j < m_openAcdContext.getClients().size(); j++) {
-                if (m_openAcdContext.getClients().get(j).getIdentity().equals(restInfo.getSteps().get(i).getAction().getActionValue())) {
+                if (m_openAcdContext.getClients().get(j).getIdentity()
+                        .equals(restInfo.getSteps().get(i).getAction().getActionValue())) {
                     validationInfo.valid = false;
                     validationInfo.message = "Validation Error: Client Does not Exist";
                     validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
@@ -315,7 +315,9 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             }
 
             for (int k = 0; k < restInfo.getSteps().get(i).getConditions().size(); k++) {
-                if (restInfo.getSteps().get(i).getConditions().get(k).getCondition().isEmpty() || restInfo.getSteps().get(i).getConditions().get(k).getRelation().isEmpty() || restInfo.getSteps().get(i).getConditions().get(k).getValueCondition().isEmpty()) {
+                if (restInfo.getSteps().get(i).getConditions().get(k).getCondition().isEmpty()
+                        || restInfo.getSteps().get(i).getConditions().get(k).getRelation().isEmpty()
+                        || restInfo.getSteps().get(i).getConditions().get(k).getValueCondition().isEmpty()) {
                     validationInfo.valid = false;
                     validationInfo.message = "Validation Error: 'Condtion' cannot be empty";
                     validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
@@ -340,7 +342,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
                 }
 
                 if (restInfo.getSteps().get(i).getConditions().get(k).getCondition().equals("media_type")) {
-                    if (!(mediaValues.contains(restInfo.getSteps().get(i).getConditions().get(k).getValueCondition()))) {
+                    if (!(mediaValues
+                            .contains(restInfo.getSteps().get(i).getConditions().get(k).getValueCondition()))) {
                         validationInfo.valid = false;
                         validationInfo.message = "Validation Error: 'Value Condition' can only be 'voice', 'email', 'voicemail', or 'chat'";
                         validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
@@ -348,15 +351,21 @@ public class OpenAcdQueueGroupsResource extends UserResource {
                 }
 
                 if (restInfo.getSteps().get(i).getConditions().get(k).getCondition().equals("weekday")) {
-                    if (Integer.parseInt(restInfo.getSteps().get(i).getConditions().get(k).getValueCondition()) < 1 || Integer.parseInt(restInfo.getSteps().get(i).getConditions().get(k).getValueCondition()) > 7) {
+                    if (Integer.parseInt(restInfo.getSteps().get(i).getConditions().get(k).getValueCondition()) < 1
+                            || Integer.parseInt(restInfo.getSteps().get(i).getConditions().get(k)
+                                    .getValueCondition()) > 7) {
                         validationInfo.valid = false;
                         validationInfo.message = "Validation Error: 'Value Condition' must be between 1 and 7";
                         validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
                     }
                 }
 
-                if (!(restInfo.getSteps().get(i).getConditions().get(k).getCondition().equals("caller_id") || restInfo.getSteps().get(i).getConditions().get(k).getCondition().equals("caller_name") || restInfo.getSteps().get(i).getConditions().get(k).getCondition().equals("media_type") || restInfo.getSteps().get(i).getConditions().get(k).getCondition().equals("client"))) {
-                    for (int j = 0; j < restInfo.getSteps().get(i).getConditions().get(k).getValueCondition().length(); j++) {
+                if (!(restInfo.getSteps().get(i).getConditions().get(k).getCondition().equals("caller_id")
+                        || restInfo.getSteps().get(i).getConditions().get(k).getCondition().equals("caller_name")
+                        || restInfo.getSteps().get(i).getConditions().get(k).getCondition().equals("media_type") || restInfo
+                        .getSteps().get(i).getConditions().get(k).getCondition().equals("client"))) {
+                    for (int j = 0; j < restInfo.getSteps().get(i).getConditions().get(k).getValueCondition()
+                            .length(); j++) {
                         char c = restInfo.getSteps().get(i).getConditions().get(k).getValueCondition().charAt(j);
                         if (!Character.isDigit(c) && c != '*') {
                             validationInfo.valid = false;
@@ -381,7 +390,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         skillsRestInfo = createSkillsRestInfo(queueGroup.getSkills());
         agentGroupRestInfo = createAgentGroupsRestInfo(queueGroup);
         recipeStepRestInfo = createRecipeStepsRestInfo(queueGroup);
-        queueGroupRestInfo = new OpenAcdQueueGroupRestInfoFull(queueGroup, skillsRestInfo, agentGroupRestInfo, recipeStepRestInfo);
+        queueGroupRestInfo = new OpenAcdQueueGroupRestInfoFull(queueGroup, skillsRestInfo, agentGroupRestInfo,
+                recipeStepRestInfo);
 
         return queueGroupRestInfo;
     }
@@ -425,7 +435,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         recipeStepsRestInfo = new ArrayList<OpenAcdRecipeStepRestInfo>(groupRecipeSteps.size());
 
         for (OpenAcdRecipeStep groupRecipeStep : groupRecipeSteps) {
-            recipeStepRestInfo = new OpenAcdRecipeStepRestInfo(groupRecipeStep, createRecipeActionRestInfo(groupRecipeStep), createRecipeConditionsRestInfo(groupRecipeStep));
+            recipeStepRestInfo = new OpenAcdRecipeStepRestInfo(groupRecipeStep,
+                    createRecipeActionRestInfo(groupRecipeStep), createRecipeConditionsRestInfo(groupRecipeStep));
             recipeStepsRestInfo.add(recipeStepRestInfo);
         }
         return recipeStepsRestInfo;
@@ -446,7 +457,6 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         List<OpenAcdRecipeConditionRestInfo> recipeConditionsRestInfo;
         OpenAcdRecipeConditionRestInfo recipeConditionRestInfo;
 
-
         List<OpenAcdRecipeCondition> groupRecipeConditions = step.getConditions();
         recipeConditionsRestInfo = new ArrayList<OpenAcdRecipeConditionRestInfo>(groupRecipeConditions.size());
 
@@ -458,7 +468,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         return recipeConditionsRestInfo;
     }
 
-    private MetadataRestInfo addQueueGroups(List<OpenAcdQueueGroupRestInfoFull> queueGroupsRestInfo, List<OpenAcdQueueGroup> queueGroups) {
+    private MetadataRestInfo addQueueGroups(List<OpenAcdQueueGroupRestInfoFull> queueGroupsRestInfo,
+            List<OpenAcdQueueGroup> queueGroups) {
         List<OpenAcdSkillRestInfo> skillsRestInfo;
         List<OpenAcdAgentGroupRestInfo> agentGroupRestInfo;
         List<OpenAcdRecipeStepRestInfo> recipeStepRestInfo;
@@ -473,7 +484,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             agentGroupRestInfo = createAgentGroupsRestInfo(queueGroup);
             recipeStepRestInfo = createRecipeStepsRestInfo(queueGroup);
 
-            OpenAcdQueueGroupRestInfoFull queueGroupRestInfo = new OpenAcdQueueGroupRestInfoFull(queueGroup, skillsRestInfo, agentGroupRestInfo, recipeStepRestInfo);
+            OpenAcdQueueGroupRestInfoFull queueGroupRestInfo = new OpenAcdQueueGroupRestInfoFull(queueGroup,
+                    skillsRestInfo, agentGroupRestInfo, recipeStepRestInfo);
             queueGroupsRestInfo.add(queueGroupRestInfo);
         }
 
@@ -513,14 +525,14 @@ public class OpenAcdQueueGroupsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdQueueGroup queueGroup1 = (OpenAcdQueueGroup) object1;
                         OpenAcdQueueGroup queueGroup2 = (OpenAcdQueueGroup) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(queueGroup1.getDescription(), queueGroup2.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(queueGroup1.getDescription(),
+                                queueGroup2.getDescription());
                     }
 
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case NAME:
@@ -541,7 +553,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdQueueGroup queueGroup1 = (OpenAcdQueueGroup) object1;
                         OpenAcdQueueGroup queueGroup2 = (OpenAcdQueueGroup) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(queueGroup2.getDescription(), queueGroup1.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(queueGroup2.getDescription(),
+                                queueGroup1.getDescription());
                     }
 
                 });
@@ -613,7 +626,6 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             step = new OpenAcdRecipeStep();
             step.setFrequency(recipeStepRestInfo.getFrequency());
 
-
             // add conditions
             step.getConditions().clear();
             for (OpenAcdRecipeConditionRestInfo recipeConditionRestInfo : recipeStepRestInfo.getConditions()) {
@@ -642,7 +654,6 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             queueGroup.addStep(step);
         }
     }
-
 
     // REST Representations
     // --------------------
@@ -690,7 +701,6 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -698,7 +708,8 @@ public class OpenAcdQueueGroupsResource extends UserResource {
         private final MetadataRestInfo m_metadata;
         private final List<OpenAcdQueueGroupRestInfoFull> m_groups;
 
-        public OpenAcdQueueGroupsBundleRestInfo(List<OpenAcdQueueGroupRestInfoFull> queueGroups, MetadataRestInfo metadata) {
+        public OpenAcdQueueGroupsBundleRestInfo(List<OpenAcdQueueGroupRestInfoFull> queueGroups,
+                MetadataRestInfo metadata) {
             m_metadata = metadata;
             m_groups = queueGroups;
         }
@@ -711,7 +722,6 @@ public class OpenAcdQueueGroupsResource extends UserResource {
             return m_groups;
         }
     }
-
 
     // Injected objects
     // ----------------

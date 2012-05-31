@@ -71,13 +71,11 @@ public class OpenAcdAgentGroupsResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -88,7 +86,6 @@ public class OpenAcdAgentGroupsResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -121,21 +118,20 @@ public class OpenAcdAgentGroupsResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "ID " + idString + " not found.");
             }
 
             try {
                 agentGroupRestInfo = createAgentGroupRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read Agent Group failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read Agent Group failed", exception.getLocalizedMessage());
             }
 
             return new OpenAcdAgentGroupRepresentation(variant.getMediaType(), agentGroupRestInfo);
         }
-
 
         // if not single, process request for all
         List<OpenAcdAgentGroup> agentGroups = m_openAcdContext.getAgentGroups();
@@ -149,11 +145,11 @@ public class OpenAcdAgentGroupsResource extends UserResource {
         metadataRestInfo = addAgentGroups(agentGroupsRestInfo, agentGroups);
 
         // create final restinfo
-        OpenAcdAgentGroupsBundleRestInfo agentGroupsBundleRestInfo = new OpenAcdAgentGroupsBundleRestInfo(agentGroupsRestInfo, metadataRestInfo);
+        OpenAcdAgentGroupsBundleRestInfo agentGroupsBundleRestInfo = new OpenAcdAgentGroupsBundleRestInfo(
+                agentGroupsRestInfo, metadataRestInfo);
 
         return new OpenAcdAgentGroupsRepresentation(variant.getMediaType(), agentGroupsBundleRestInfo);
     }
-
 
     // PUT - Update or Add single Group
     // --------------------------------
@@ -173,7 +169,6 @@ public class OpenAcdAgentGroupsResource extends UserResource {
             return;
         }
 
-
         // if have id then update a single group
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -181,9 +176,9 @@ public class OpenAcdAgentGroupsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 agentGroup = m_openAcdContext.getAgentGroupById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -191,31 +186,31 @@ public class OpenAcdAgentGroupsResource extends UserResource {
             try {
                 updateAgentGroup(agentGroup, agentGroupRestInfo);
                 m_openAcdContext.saveAgentGroup(agentGroup);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update Agent Group failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update Agent Group failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Agent Group", agentGroup.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED,
+                    "Updated Agent Group", agentGroup.getId());
 
             return;
         }
-
 
         // otherwise add new agent group
         try {
             agentGroup = createAgentGroup(agentGroupRestInfo);
             m_openAcdContext.saveAgentGroup(agentGroup);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create Agent Group failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create Agent Group failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Agent Group", agentGroup.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Agent Group",
+                agentGroup.getId());
     }
-
 
     // DELETE - Delete single Group
     // --------------------------------
@@ -231,15 +226,16 @@ public class OpenAcdAgentGroupsResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 agentGroup = m_openAcdContext.getAgentGroupById(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
             m_openAcdContext.deleteAgentGroup(agentGroup);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Agent Group", agentGroup.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED,
+                    "Deleted Agent Group", agentGroup.getId());
 
             return;
         }
@@ -247,7 +243,6 @@ public class OpenAcdAgentGroupsResource extends UserResource {
         // no id string
         RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
     }
-
 
     // Helper functions
     // ----------------
@@ -262,7 +257,8 @@ public class OpenAcdAgentGroupsResource extends UserResource {
         String name = restInfo.getName();
 
         for (int i = 0; i < name.length(); i++) {
-            if ((!Character.isLetterOrDigit(name.charAt(i)) && !(Character.getType(name.charAt(i)) == Character.CONNECTOR_PUNCTUATION)) && name.charAt(i) != '-') {
+            if ((!Character.isLetterOrDigit(name.charAt(i)) && !(Character.getType(name.charAt(i)) == Character.CONNECTOR_PUNCTUATION))
+                    && name.charAt(i) != '-') {
                 validationInfo.valid = false;
                 validationInfo.message = "Validation Error: 'Name' must only contain letters, numbers, dashes, and underscores";
                 validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
@@ -283,12 +279,14 @@ public class OpenAcdAgentGroupsResource extends UserResource {
         skillsRestInfo = createSkillsRestInfo(agentGroup);
         queuesRestInfo = createQueuesRestInfo(agentGroup);
         clientsRestInfo = createClientsRestInfo(agentGroup);
-        agentGroupRestInfo = new OpenAcdAgentGroupRestInfoFull(agentGroup, skillsRestInfo, queuesRestInfo, clientsRestInfo);
+        agentGroupRestInfo = new OpenAcdAgentGroupRestInfoFull(agentGroup, skillsRestInfo, queuesRestInfo,
+                clientsRestInfo);
 
         return agentGroupRestInfo;
     }
 
-    private MetadataRestInfo addAgentGroups(List<OpenAcdAgentGroupRestInfoFull> agentGroupsRestInfo, List<OpenAcdAgentGroup> agentGroups) {
+    private MetadataRestInfo addAgentGroups(List<OpenAcdAgentGroupRestInfoFull> agentGroupsRestInfo,
+            List<OpenAcdAgentGroup> agentGroups) {
         List<OpenAcdSkillRestInfo> skillsRestInfo;
         List<OpenAcdQueueRestInfo> queuesRestInfo;
         List<OpenAcdClientRestInfo> clientsRestInfo;
@@ -302,7 +300,8 @@ public class OpenAcdAgentGroupsResource extends UserResource {
             skillsRestInfo = createSkillsRestInfo(agentGroup);
             queuesRestInfo = createQueuesRestInfo(agentGroup);
             clientsRestInfo = createClientsRestInfo(agentGroup);
-            OpenAcdAgentGroupRestInfoFull agentGroupRestInfo = new OpenAcdAgentGroupRestInfoFull(agentGroup, skillsRestInfo, queuesRestInfo, clientsRestInfo);
+            OpenAcdAgentGroupRestInfoFull agentGroupRestInfo = new OpenAcdAgentGroupRestInfoFull(agentGroup,
+                    skillsRestInfo, queuesRestInfo, clientsRestInfo);
             agentGroupsRestInfo.add(agentGroupRestInfo);
         }
 
@@ -342,7 +341,6 @@ public class OpenAcdAgentGroupsResource extends UserResource {
 
         return queuesRestInfo;
     }
-
 
     private List<OpenAcdClientRestInfo> createClientsRestInfo(OpenAcdAgentGroup agentGroup) {
         List<OpenAcdClientRestInfo> clientsRestInfo;
@@ -391,14 +389,14 @@ public class OpenAcdAgentGroupsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdAgentGroup agentGroup1 = (OpenAcdAgentGroup) object1;
                         OpenAcdAgentGroup agentGroup2 = (OpenAcdAgentGroup) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(agentGroup1.getDescription(),agentGroup2.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(agentGroup1.getDescription(),
+                                agentGroup2.getDescription());
                     }
 
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case NAME:
@@ -419,7 +417,8 @@ public class OpenAcdAgentGroupsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdAgentGroup agentGroup1 = (OpenAcdAgentGroup) object1;
                         OpenAcdAgentGroup agentGroup2 = (OpenAcdAgentGroup) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(agentGroup2.getDescription(),agentGroup1.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(agentGroup2.getDescription(),
+                                agentGroup1.getDescription());
                     }
 
                 });
@@ -489,7 +488,6 @@ public class OpenAcdAgentGroupsResource extends UserResource {
         }
     }
 
-
     // REST Representations
     // --------------------
 
@@ -532,7 +530,6 @@ public class OpenAcdAgentGroupsResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -540,7 +537,8 @@ public class OpenAcdAgentGroupsResource extends UserResource {
         private final MetadataRestInfo m_metadata;
         private final List<OpenAcdAgentGroupRestInfoFull> m_groups;
 
-        public OpenAcdAgentGroupsBundleRestInfo(List<OpenAcdAgentGroupRestInfoFull> agentGroups, MetadataRestInfo metadata) {
+        public OpenAcdAgentGroupsBundleRestInfo(List<OpenAcdAgentGroupRestInfoFull> agentGroups,
+                MetadataRestInfo metadata) {
             m_metadata = metadata;
             m_groups = agentGroups;
         }
@@ -553,7 +551,6 @@ public class OpenAcdAgentGroupsResource extends UserResource {
             return m_groups;
         }
     }
-
 
     // Injected objects
     // ----------------

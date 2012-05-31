@@ -64,13 +64,11 @@ public class BranchesResource extends UserResource {
 
             try {
                 return valueOf(fieldString.toUpperCase());
-            }
-            catch (Exception ex) {
+            } catch (Exception ex) {
                 return NONE;
             }
         }
     }
-
 
     @Override
     public void init(Context context, Request request, Response response) {
@@ -81,7 +79,6 @@ public class BranchesResource extends UserResource {
         // pull parameters from url
         m_form = getRequest().getResourceRef().getQueryAsForm();
     }
-
 
     // Allowed REST operations
     // -----------------------
@@ -114,21 +111,20 @@ public class BranchesResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
+                        "ID " + idString + " not found.");
             }
 
             try {
                 branchRestInfo = createBranchRestInfo(idInt);
-            }
-            catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED, "Read Skills failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
+                        "Read Skills failed", exception.getLocalizedMessage());
             }
 
             return new BranchRepresentation(variant.getMediaType(), branchRestInfo);
         }
-
 
         // if not single, process request for all
         List<Branch> branches = m_branchManager.getBranches();
@@ -142,11 +138,11 @@ public class BranchesResource extends UserResource {
         metadataRestInfo = addBranches(branchesRestInfo, branches);
 
         // create final restinfo
-        BranchesBundleRestInfo branchesBundleRestInfo = new BranchesBundleRestInfo(branchesRestInfo, metadataRestInfo);
+        BranchesBundleRestInfo branchesBundleRestInfo = new BranchesBundleRestInfo(branchesRestInfo,
+                metadataRestInfo);
 
         return new BranchesRepresentation(variant.getMediaType(), branchesBundleRestInfo);
     }
-
 
     // PUT - Update or Add single Branch
     // ---------------------------------
@@ -166,7 +162,6 @@ public class BranchesResource extends UserResource {
             return;
         }
 
-
         // if have id then update single
         String idString = (String) getRequest().getAttributes().get("id");
 
@@ -174,9 +169,9 @@ public class BranchesResource extends UserResource {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 branch = m_branchManager.getBranch(idInt);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -184,31 +179,31 @@ public class BranchesResource extends UserResource {
             try {
                 updateBranch(branch, branchRestInfo);
                 m_branchManager.saveBranch(branch);
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Update Branch failed", exception.getLocalizedMessage());
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                        "Update Branch failed", exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Branch", branch.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Branch",
+                    branch.getId());
 
             return;
         }
-
 
         // otherwise add new
         try {
             branch = createBranch(branchRestInfo);
             m_branchManager.saveBranch(branch);
-        }
-        catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED, "Create Branch failed", exception.getLocalizedMessage());
+        } catch (Exception exception) {
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
+                    "Create Branch failed", exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Branch", branch.getId());
+        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Branch",
+                branch.getId());
     }
-
 
     // DELETE - Delete single Branch
     // -----------------------------
@@ -224,10 +219,11 @@ public class BranchesResource extends UserResource {
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
-                branch = m_branchManager.getBranch(idInt); // just obtain to make sure exists, use int id for actual delete
-            }
-            catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID " + idString + " not found.");
+                branch = m_branchManager.getBranch(idInt); // just obtain to make sure exists, use
+                                                           // int id for actual delete
+            } catch (Exception exception) {
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
+                        + idString + " not found.");
                 return;
             }
 
@@ -235,7 +231,8 @@ public class BranchesResource extends UserResource {
             branchIds.add(idInt);
             m_branchManager.deleteBranches(branchIds);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Branch", branch.getId());
+            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Branch",
+                    branch.getId());
 
             return;
         }
@@ -304,31 +301,33 @@ public class BranchesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getAddress().getCity(), branch2.getAddress().getCity());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getAddress().getCity(), branch2
+                                .getAddress().getCity());
                     }
 
                 });
                 break;
-                
+
             case OFFICEDESIGNATION:
                 Collections.sort(branches, new Comparator() {
 
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getAddress().getOfficeDesignation(), branch2.getAddress().getOfficeDesignation());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getAddress().getOfficeDesignation(),
+                                branch2.getAddress().getOfficeDesignation());
                     }
 
                 });
                 break;
-                
+
             case NAME:
                 Collections.sort(branches, new Comparator() {
 
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getName(),branch2.getName());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getName(), branch2.getName());
                     }
 
                 });
@@ -340,14 +339,14 @@ public class BranchesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getDescription(),branch2.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getDescription(),
+                                branch2.getDescription());
                     }
 
                 });
                 break;
             }
-        }
-        else {
+        } else {
             // must be reverse
             switch (sortField) {
             case CITY:
@@ -356,31 +355,33 @@ public class BranchesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getAddress().getCity(), branch1.getAddress().getCity());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getAddress().getCity(), branch1
+                                .getAddress().getCity());
                     }
 
                 });
                 break;
-                
+
             case OFFICEDESIGNATION:
                 Collections.sort(branches, new Comparator() {
 
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getAddress().getOfficeDesignation(), branch1.getAddress().getOfficeDesignation());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getAddress().getOfficeDesignation(),
+                                branch1.getAddress().getOfficeDesignation());
                     }
 
                 });
                 break;
-                
+
             case NAME:
                 Collections.sort(branches, new Comparator() {
 
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getName(),branch1.getName());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getName(), branch1.getName());
                     }
 
                 });
@@ -392,7 +393,8 @@ public class BranchesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getDescription(),branch1.getDescription());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getDescription(),
+                                branch1.getDescription());
                     }
 
                 });
@@ -448,7 +450,6 @@ public class BranchesResource extends UserResource {
         return address;
     }
 
-
     // REST Representations
     // --------------------
 
@@ -485,7 +486,6 @@ public class BranchesResource extends UserResource {
         }
     }
 
-
     // REST info objects
     // -----------------
 
@@ -506,7 +506,6 @@ public class BranchesResource extends UserResource {
             return m_branches;
         }
     }
-
 
     // Injected objects
     // ----------------

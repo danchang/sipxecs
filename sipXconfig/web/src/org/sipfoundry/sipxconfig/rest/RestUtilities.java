@@ -57,9 +57,9 @@ public class RestUtilities {
         // attempt to parse attribute provided as an id
         try {
             intFromAttribute = Integer.parseInt(attributeString);
-        }
-        catch (Exception exception) {
-            throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Attribute " + attributeString + " invalid.");
+        } catch (Exception exception) {
+            throw new ResourceException(Status.CLIENT_ERROR_BAD_REQUEST, "Attribute " + attributeString
+                    + " invalid.");
         }
 
         return intFromAttribute;
@@ -77,8 +77,7 @@ public class RestUtilities {
         try {
             paginationInfo.pageNumber = Integer.parseInt(pageNumberString);
             paginationInfo.resultsPerPage = Integer.parseInt(resultsPerPageString);
-        }
-        catch (Exception exception) {
+        } catch (Exception exception) {
             // default 0 for nothing
             paginationInfo.pageNumber = 0;
             paginationInfo.resultsPerPage = 0;
@@ -89,11 +88,9 @@ public class RestUtilities {
             paginationInfo.pageNumber = 0;
             paginationInfo.resultsPerPage = 0;
             paginationInfo.paginate = false;
-        }
-        else {
+        } else {
             paginationInfo.paginate = true;
         }
-
 
         // do we have to paginate?
         if (paginationInfo.paginate) {
@@ -107,21 +104,18 @@ public class RestUtilities {
                 paginationInfo.pageNumber = 1;
                 // design decision: should the resultsPerPage actually be set to totalResults?
                 // since totalResults are already available preserve call value
-            }
-            else {
+            } else {
                 // check if specified page number is on or beyoned last page (then use last page)
                 if (paginationInfo.pageNumber >= paginationInfo.totalPages) {
                     paginationInfo.pageNumber = paginationInfo.totalPages;
                     paginationInfo.startIndex = (paginationInfo.totalPages - 1) * paginationInfo.resultsPerPage;
                     paginationInfo.endIndex = paginationInfo.totalResults - 1;
-                }
-                else {
+                } else {
                     paginationInfo.startIndex = (paginationInfo.pageNumber - 1) * paginationInfo.resultsPerPage;
                     paginationInfo.endIndex = paginationInfo.startIndex + paginationInfo.resultsPerPage - 1;
                 }
             }
-        }
-        else {
+        } else {
             // default values assuming no pagination
             paginationInfo.startIndex = 0;
             paginationInfo.endIndex = paginationInfo.totalResults - 1;
@@ -155,8 +149,7 @@ public class RestUtilities {
         // assume forward if get anything else but "reverse"
         if (sortDirectionString.toLowerCase().equals("reverse")) {
             sortInfo.directionForward = false;
-        }
-        else {
+        } else {
             sortInfo.directionForward = true;
         }
 
@@ -166,16 +159,14 @@ public class RestUtilities {
         return sortInfo;
     }
 
-    public static int compareIgnoreCaseNullSafe (String left, String right)
-    {
-    	if (left == null)
-        	left = "";
+    public static int compareIgnoreCaseNullSafe(String left, String right) {
+        if (left == null)
+            left = "";
         if (right == null)
-        	right = "";
-        
+            right = "";
+
         return left.compareToIgnoreCase(right);
     }
-    
 
     // XML Response functions
     // ----------------------
@@ -198,8 +189,7 @@ public class RestUtilities {
 
             response.setEntity(new DomRepresentation(MediaType.TEXT_XML, doc));
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
@@ -228,8 +218,7 @@ public class RestUtilities {
 
             response.setEntity(new DomRepresentation(MediaType.TEXT_XML, doc));
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
@@ -258,8 +247,7 @@ public class RestUtilities {
 
             response.setEntity(new DomRepresentation(MediaType.TEXT_XML, doc));
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
@@ -287,8 +275,7 @@ public class RestUtilities {
 
             return representation; // new DomRepresentation(MediaType.TEXT_XML, doc);
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
@@ -296,13 +283,15 @@ public class RestUtilities {
         return null;
     }
 
-    public static void setResponseError(Response response, ResponseCode code, String message, String additionalMessage) {
+    public static void setResponseError(Response response, ResponseCode code, String message,
+            String additionalMessage) {
         Representation representation = getResponseError(response, code, message, additionalMessage);
 
         response.setEntity(representation);
     }
 
-    public static Representation getResponseError(Response response, ResponseCode code, String message, String additionalMessage) {
+    public static Representation getResponseError(Response response, ResponseCode code, String message,
+            String additionalMessage) {
         try {
             DomRepresentation representation = new DomRepresentation(MediaType.TEXT_XML);
             Document doc = representation.getDocument();
@@ -325,8 +314,7 @@ public class RestUtilities {
 
             return representation; // new DomRepresentation(MediaType.TEXT_XML, doc);
 
-        }
-        catch (IOException e) {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
@@ -378,7 +366,6 @@ public class RestUtilities {
         SUCCESS, SUCCESS_CREATED, SUCCESS_UPDATED, SUCCESS_DELETED, ERROR_MISSING_INPUT, ERROR_BAD_INPUT, ERROR_WRITE_FAILED, ERROR_READ_FAILED
     }
 
-
     // Data objects
     // ------------
 
@@ -403,7 +390,6 @@ public class RestUtilities {
         String message = "Valid";
         ResponseCode responseCode = ResponseCode.SUCCESS;
     }
-
 
     // Common Rest Info objects
     // ------------------------
@@ -583,13 +569,14 @@ public class RestUtilities {
         private final String m_firstName;
         private final String m_pin;
         private final String m_sipPassword;
-        private final String m_emailAddress;  // this is actually from "Contact Information" tab.  Maybe create separate API later
+        private final String m_emailAddress; // this is actually from "Contact Information" tab.
+                                             // Maybe create separate API later
         private final List<UserGroupRestInfo> m_groups;
         private final BranchRestInfo m_branch;
         private final List<AliasRestInfo> m_aliases;
 
-
-        public UserRestInfoFull(User user, List<UserGroupRestInfo> userGroupsRestInfo, BranchRestInfo branchRestInfo, List<AliasRestInfo> aliasesRestInfo) {
+        public UserRestInfoFull(User user, List<UserGroupRestInfo> userGroupsRestInfo,
+                BranchRestInfo branchRestInfo, List<AliasRestInfo> aliasesRestInfo) {
             m_id = user.getId();
             m_userName = user.getUserName();
             m_lastName = user.getLastName();
@@ -629,6 +616,7 @@ public class RestUtilities {
         public String getEmailAddress() {
             return m_emailAddress;
         }
+
         public List<UserGroupRestInfo> getGroups() {
             return m_groups;
         }
@@ -654,7 +642,6 @@ public class RestUtilities {
             return m_alias;
         }
     }
-
 
     // Common OpenACD Rest Info objects
     // ------------------------
@@ -799,7 +786,8 @@ public class RestUtilities {
         private final List<OpenAcdAgentGroupRestInfo> m_agentGroups;
         private final List<OpenAcdRecipeStepRestInfo> m_steps;
 
-        public OpenAcdQueueRestInfoFull(OpenAcdQueue queue, List<OpenAcdSkillRestInfo> skills, List<OpenAcdAgentGroupRestInfo> agentGroups, List<OpenAcdRecipeStepRestInfo> steps) {
+        public OpenAcdQueueRestInfoFull(OpenAcdQueue queue, List<OpenAcdSkillRestInfo> skills,
+                List<OpenAcdAgentGroupRestInfo> agentGroups, List<OpenAcdRecipeStepRestInfo> steps) {
             super(queue);
             m_groupId = queue.getGroup().getId();
             m_weight = queue.getWeight();
@@ -829,7 +817,6 @@ public class RestUtilities {
         }
     }
 
-
     static class OpenAcdQueueGroupRestInfoFull {
         private final String m_name;
         private final int m_id;
@@ -838,7 +825,8 @@ public class RestUtilities {
         private final List<OpenAcdAgentGroupRestInfo> m_agentGroups;
         private final List<OpenAcdRecipeStepRestInfo> m_steps;
 
-        public OpenAcdQueueGroupRestInfoFull(OpenAcdQueueGroup queueGroup, List<OpenAcdSkillRestInfo> skills, List<OpenAcdAgentGroupRestInfo> agentGroups, List<OpenAcdRecipeStepRestInfo> steps) {
+        public OpenAcdQueueGroupRestInfoFull(OpenAcdQueueGroup queueGroup, List<OpenAcdSkillRestInfo> skills,
+                List<OpenAcdAgentGroupRestInfo> agentGroups, List<OpenAcdRecipeStepRestInfo> steps) {
             m_name = queueGroup.getName();
             m_id = queueGroup.getId();
             m_description = queueGroup.getDescription();
@@ -902,7 +890,8 @@ public class RestUtilities {
         private final OpenAcdRecipeActionRestInfo m_action;
         private final String m_frequency;
 
-        public OpenAcdRecipeStepRestInfo(OpenAcdRecipeStep step, OpenAcdRecipeActionRestInfo recipeActionRestInfo, List<OpenAcdRecipeConditionRestInfo> conditions) {
+        public OpenAcdRecipeStepRestInfo(OpenAcdRecipeStep step, OpenAcdRecipeActionRestInfo recipeActionRestInfo,
+                List<OpenAcdRecipeConditionRestInfo> conditions) {
             m_id = step.getId();
             m_conditions = conditions;
             m_action = recipeActionRestInfo;
@@ -1009,7 +998,8 @@ public class RestUtilities {
         private final List<OpenAcdQueueRestInfo> m_queues;
         private final List<OpenAcdClientRestInfo> m_clients;
 
-        public OpenAcdAgentGroupRestInfoFull(OpenAcdAgentGroup agentGroup, List<OpenAcdSkillRestInfo> skills, List<OpenAcdQueueRestInfo> queues, List<OpenAcdClientRestInfo> clients) {
+        public OpenAcdAgentGroupRestInfoFull(OpenAcdAgentGroup agentGroup, List<OpenAcdSkillRestInfo> skills,
+                List<OpenAcdQueueRestInfo> queues, List<OpenAcdClientRestInfo> clients) {
             super(agentGroup);
             m_skills = skills;
             m_queues = queues;
@@ -1073,7 +1063,8 @@ public class RestUtilities {
         private final List<OpenAcdQueueRestInfo> m_queues;
         private final List<OpenAcdClientRestInfo> m_clients;
 
-        public OpenAcdAgentRestInfoFull(OpenAcdAgent agent, List<OpenAcdSkillRestInfo> skills, List<OpenAcdQueueRestInfo> queues, List<OpenAcdClientRestInfo> clients) {
+        public OpenAcdAgentRestInfoFull(OpenAcdAgent agent, List<OpenAcdSkillRestInfo> skills,
+                List<OpenAcdQueueRestInfo> queues, List<OpenAcdClientRestInfo> clients) {
             m_id = agent.getId();
             m_firstName = agent.getFirstName();
             m_lastName = agent.getLastName();
