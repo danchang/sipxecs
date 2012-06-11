@@ -1,8 +1,8 @@
 /*
  *
- *  OpenAcdLinesResource.java - A Restlet to read Skill data from OpenACD within SipXecs
  *  Copyright (C) 2012 PATLive, I. Wesson, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  OpenAcdLinesResource.java - A Restlet to read Skill data from OpenACD within SipXecs
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -58,9 +58,19 @@ import com.thoughtworks.xstream.XStream;
 // --------------------------
 // Lines is inconsistent with other OpenACD objects.
 // OpenAcdContext does not contain functions for getLineById(), saveLine() or removeLine().
-// It appears the OpenAcdExtension object is used for lines, and it has all the above functions   
-// so this API will appear slightly different than other APIs, although attempts have been made to preserve general structure.
+// It appears the OpenAcdExtension object is used for lines, and it has all the above functions
+// so this API will appear slightly different than other APIs, although attempts have been made
+// to preserve general structure.
 public class OpenAcdLinesResource extends UserResource {
+    private static final String EMPTY_STRING = "";
+
+    private static final String ELEMENT_NAME_LINEBUNDLE = "openacd-line";
+    private static final String ELEMENT_NAME_LINE = "line";
+    private static final String ELEMENT_NAME_ACTION = "action";
+
+    private static final String SUPERVISION_TYPE_FS = "FS";
+    private static final String SUPERVISION_TYPE_AGENT = "AGENT";
+    private static final String SUPERVISION_TYPE_ACD = "ACD";
 
     private OpenAcdContext m_openAcdContext;
     private Form m_form;
@@ -118,21 +128,22 @@ public class OpenAcdLinesResource extends UserResource {
         // process request for single
         int idInt;
         OpenAcdLineRestInfo lineRestInfo = null;
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                        "ID " + idString + " not found.");
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID, RestUtilities
+                        .getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
             }
 
             try {
                 lineRestInfo = createLineRestInfo(idInt);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
-                        "Read Line failed", exception.getLocalizedMessage());
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_READ_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
             }
 
             return new OpenAcdLineRepresentation(variant.getMediaType(), lineRestInfo);
@@ -150,8 +161,8 @@ public class OpenAcdLinesResource extends UserResource {
         metadataRestInfo = addLines(linesRestInfo, lines);
 
         // create final restinfo
-        OpenAcdLinesBundleRestInfo linesBundleRestInfo = new OpenAcdLinesBundleRestInfo(linesRestInfo,
-                metadataRestInfo);
+        OpenAcdLinesBundleRestInfo linesBundleRestInfo =
+                new OpenAcdLinesBundleRestInfo(linesRestInfo, metadataRestInfo);
 
         return new OpenAcdLinesRepresentation(variant.getMediaType(), linesBundleRestInfo);
     }
@@ -169,21 +180,22 @@ public class OpenAcdLinesResource extends UserResource {
         // validate input for update or create
         ValidationInfo validationInfo = validate(lineRestInfo);
 
-        if (!validationInfo.valid) {
-            RestUtilities.setResponseError(getResponse(), validationInfo.responseCode, validationInfo.message);
+        if (!validationInfo.getValid()) {
+            RestUtilities.setResponseError(getResponse(), validationInfo.getResponseCode(), validationInfo
+                    .getMessage());
             return;
         }
 
         // if have id then update single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 line = (OpenAcdLine) m_openAcdContext.getExtensionById(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID, RestUtilities
+                        .getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
@@ -192,13 +204,15 @@ public class OpenAcdLinesResource extends UserResource {
                 updateLine(line, lineRestInfo);
                 m_openAcdContext.saveExtension(line);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                        "Update Line failed", exception.getLocalizedMessage());
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Line",
-                    line.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()), line
+                    .getId());
 
             return;
         }
@@ -208,13 +222,15 @@ public class OpenAcdLinesResource extends UserResource {
             line = createLine(lineRestInfo);
             m_openAcdContext.saveExtension(line);
         } catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                    "Create Line failed", exception.getLocalizedMessage());
+            RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_CREATE_FAILED, RestUtilities
+                    .getResponseMessage(ResponseCode.ERROR_CREATE_FAILED, this.getClass().getSimpleName()),
+                    exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Line",
-                line.getId());
+        RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_CREATED, RestUtilities
+                .getResponseMessage(ResponseCode.SUCCESS_CREATED, this.getClass().getSimpleName()), line
+                .getId());
     }
 
     // DELETE - Delete single item
@@ -225,28 +241,30 @@ public class OpenAcdLinesResource extends UserResource {
         OpenAcdLine line;
 
         // get id then delete single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 line = (OpenAcdLine) m_openAcdContext.getExtensionById(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID, RestUtilities
+                        .getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
             m_openAcdContext.deleteExtension(line);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Line",
-                    line.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_DELETED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_DELETED, this.getClass().getSimpleName()), line
+                    .getId());
 
             return;
         }
 
         // no id string
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
+        RestUtilities.setResponse(getResponse(), ResponseCode.ERROR_MISSING_ID, RestUtilities
+                .getResponseMessage(ResponseCode.ERROR_MISSING_ID, this.getClass().getSimpleName()));
     }
 
     // Helper functions
@@ -267,9 +285,10 @@ public class OpenAcdLinesResource extends UserResource {
         if (!StringUtils.isEmpty(name)) {
             for (int i = 0; i < name.length(); i++) {
                 if (name.charAt(i) == ' ') {
-                    validationInfo.valid = false;
-                    validationInfo.message = "Validation Error: 'Name' must only contain letters, numbers, dashes, underscores, and symbols";
-                    validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+                    validationInfo.setValid(false);
+                    validationInfo
+                            .setMessage("'Name' must only contain letters, numbers, dashes, underscores, and symbols");
+                    validationInfo.setResponseCode(ResponseCode.ERROR_BAD_INPUT);
                 }
             }
         }
@@ -277,9 +296,9 @@ public class OpenAcdLinesResource extends UserResource {
         if (!StringUtils.isEmpty(ext)) {
             for (int i = 0; i < ext.length(); i++) {
                 if ((!Character.isDigit(ext.charAt(i)))) {
-                    validationInfo.valid = false;
-                    validationInfo.message = "Validation Error: 'Extension' must only contain numbers";
-                    validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+                    validationInfo.setValid(false);
+                    validationInfo.setMessage("'Extension' must only contain numbers");
+                    validationInfo.setResponseCode(ResponseCode.ERROR_BAD_INPUT);
                 }
             }
         }
@@ -287,9 +306,9 @@ public class OpenAcdLinesResource extends UserResource {
         if (!StringUtils.isEmpty(did)) {
             for (int i = 0; i < did.length(); i++) {
                 if ((!Character.isDigit(did.charAt(i)))) {
-                    validationInfo.valid = false;
-                    validationInfo.message = "Validation Error: 'DID Number' must only contain numbers";
-                    validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+                    validationInfo.setValid(false);
+                    validationInfo.setMessage("'DID Number' must only contain numbers");
+                    validationInfo.setResponseCode(ResponseCode.ERROR_BAD_INPUT);
                 }
             }
         }
@@ -297,9 +316,9 @@ public class OpenAcdLinesResource extends UserResource {
         if (!StringUtils.isEmpty(alias)) {
             for (int i = 0; i < alias.length(); i++) {
                 if ((!Character.isDigit(alias.charAt(i)))) {
-                    validationInfo.valid = false;
-                    validationInfo.message = "Validation Error: 'Alias' must only contain numbers";
-                    validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+                    validationInfo.setValid(false);
+                    validationInfo.setMessage("'Alias' must only contain numbers");
+                    validationInfo.setResponseCode(ResponseCode.ERROR_BAD_INPUT);
                 }
             }
         }
@@ -316,15 +335,15 @@ public class OpenAcdLinesResource extends UserResource {
         OpenAcdLineActionRestInfo customActionRestInfo;
 
         OpenAcdQueue queue;
-        String queueName = "";
+        String queueName = EMPTY_STRING;
         OpenAcdClient client;
-        String clientIdentity = "";
+        String clientIdentity = EMPTY_STRING;
         Boolean allowVoicemail = false;
         String allowVoicemailString = "false";
         Boolean isFsSet = false;
         Boolean isAgentSet = false;
-        String answerSupervisionType = "";
-        String welcomeMessage = "";
+        String answerSupervisionType = EMPTY_STRING;
+        String welcomeMessage = EMPTY_STRING;
 
         List<FreeswitchAction> actions = line.getLineActions();
         for (FreeswitchAction action : actions) {
@@ -361,15 +380,16 @@ public class OpenAcdLinesResource extends UserResource {
         allowVoicemail = Boolean.parseBoolean(allowVoicemailString);
 
         if (isFsSet) {
-            answerSupervisionType = "FS";
+            answerSupervisionType = SUPERVISION_TYPE_FS;
         } else if (isAgentSet) {
-            answerSupervisionType = "AGENT";
+            answerSupervisionType = SUPERVISION_TYPE_AGENT;
         } else {
-            answerSupervisionType = "ACD";
+            answerSupervisionType = SUPERVISION_TYPE_ACD;
         }
 
-        lineActionsBundleRestInfo = new OpenAcdLineActionsBundleRestInfo(queueRestInfo, clientRestInfo,
-                allowVoicemail, customActions, answerSupervisionType, welcomeMessage);
+        lineActionsBundleRestInfo =
+                new OpenAcdLineActionsBundleRestInfo(queueRestInfo, clientRestInfo, allowVoicemail,
+                        customActions, answerSupervisionType, welcomeMessage);
 
         return lineActionsBundleRestInfo;
     }
@@ -400,7 +420,7 @@ public class OpenAcdLinesResource extends UserResource {
         PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, lines.size());
 
         // create list of line restinfos
-        for (int index = paginationInfo.startIndex; index <= paginationInfo.endIndex; index++) {
+        for (int index = paginationInfo.getStartIndex(); index <= paginationInfo.getEndIndex(); index++) {
             OpenAcdLine line = lines.get(index);
 
             lineRestInfo = createLineRestInfo(line);
@@ -416,171 +436,199 @@ public class OpenAcdLinesResource extends UserResource {
         // sort groups if requested
         SortInfo sortInfo = RestUtilities.calculateSorting(m_form);
 
-        if (!sortInfo.sort) {
+        if (!sortInfo.getSort()) {
             return;
         }
 
-        SortField sortField = SortField.toSortField(sortInfo.sortField);
+        SortField sortField = SortField.toSortField(sortInfo.getSortField());
 
-        if (sortInfo.directionForward) {
+        switch (sortField) {
+        case NAME:
+            sortLinesByName(lines, sortInfo.getDirectionForward());
+            break;
 
-            switch (sortField) {
-            case NAME:
-                Collections.sort(lines, new Comparator() {
+        case DESCRIPTION:
+            sortLinesByDescription(lines, sortInfo.getDirectionForward());
+            break;
 
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(line1.getName(), line2.getName());
-                    }
+        case EXTENSION:
+            sortLinesByExtension(lines, sortInfo.getDirectionForward());
+            break;
 
-                });
-                break;
+        case DIDNUMBER:
+            sortLinesByDIDNumber(lines, sortInfo.getDirectionForward());
+            break;
 
-            case DESCRIPTION:
-                Collections.sort(lines, new Comparator() {
+        case QUEUE:
+            sortLinesByQueue(lines, sortInfo.getDirectionForward());
+            break;
 
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(line1.getDescription(),
-                                line2.getDescription());
-                    }
+        case CLIENT:
+            sortLinesByClient(lines, sortInfo.getDirectionForward());
+            break;
 
-                });
-                break;
+        default:
+            break;
+        }
+    }
 
-            case EXTENSION:
-                Collections.sort(lines, new Comparator() {
+    @SuppressWarnings("unchecked")
+    private void sortLinesByName(List<OpenAcdLine> lines, boolean directionForward) {
+        if (directionForward) {
+            Collections.sort(lines, new Comparator() {
 
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(line1.getExtension(), line2.getExtension());
-                    }
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(line1.getName(), line2.getName());
+                }
 
-                });
-                break;
-
-            case DIDNUMBER:
-                Collections.sort(lines, new Comparator() {
-
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(line1.getDid(), line2.getDid());
-                    }
-
-                });
-                break;
-
-            case QUEUE:
-                Collections.sort(lines, new Comparator() {
-
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(createLineRestInfo(line1).m_actions
-                                .getQueue().getName(), createLineRestInfo(line2).m_actions.getQueue().getName());
-                    }
-
-                });
-                break;
-
-            case CLIENT:
-                Collections.sort(lines, new Comparator() {
-
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(createLineRestInfo(line1).m_actions
-                                .getClient().getIdentity(), createLineRestInfo(line2).m_actions.getClient()
-                                .getIdentity());
-                    }
-
-                });
-                break;
-
-            }
+            });
         } else {
-            // must be reverse
-            switch (sortField) {
-            case NAME:
-                Collections.sort(lines, new Comparator() {
+            Collections.sort(lines, new Comparator() {
 
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(line2.getName(), line1.getName());
-                    }
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(line2.getName(), line1.getName());
+                }
 
-                });
-                break;
+            });
+        }
+    }
 
-            case DESCRIPTION:
-                Collections.sort(lines, new Comparator() {
+    @SuppressWarnings("unchecked")
+    private void sortLinesByDescription(List<OpenAcdLine> lines, boolean directionForward) {
+        if (directionForward) {
+            Collections.sort(lines, new Comparator() {
 
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(line2.getDescription(),
-                                line1.getDescription());
-                    }
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(line1.getDescription(), line2
+                            .getDescription());
+                }
 
-                });
-                break;
+            });
+        } else {
+            Collections.sort(lines, new Comparator() {
 
-            case EXTENSION:
-                Collections.sort(lines, new Comparator() {
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(line2.getDescription(), line1
+                            .getDescription());
+                }
 
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(line2.getExtension(), line1.getExtension());
-                    }
+            });
+        }
+    }
 
-                });
-                break;
+    @SuppressWarnings("unchecked")
+    private void sortLinesByExtension(List<OpenAcdLine> lines, boolean directionForward) {
+        if (directionForward) {
+            Collections.sort(lines, new Comparator() {
 
-            case DIDNUMBER:
-                Collections.sort(lines, new Comparator() {
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities
+                            .compareIgnoreCaseNullSafe(line1.getExtension(), line2.getExtension());
+                }
 
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(line2.getDid(), line1.getDid());
-                    }
+            });
+        } else {
+            Collections.sort(lines, new Comparator() {
 
-                });
-                break;
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities
+                            .compareIgnoreCaseNullSafe(line2.getExtension(), line1.getExtension());
+                }
 
-            case QUEUE:
-                Collections.sort(lines, new Comparator() {
+            });
+        }
+    }
 
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(createLineRestInfo(line2).m_actions
-                                .getQueue().getName(), createLineRestInfo(line1).m_actions.getQueue().getName());
-                    }
+    @SuppressWarnings("unchecked")
+    private void sortLinesByDIDNumber(List<OpenAcdLine> lines, boolean directionForward) {
+        if (directionForward) {
+            Collections.sort(lines, new Comparator() {
 
-                });
-                break;
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(line1.getDid(), line2.getDid());
+                }
 
-            case CLIENT:
-                Collections.sort(lines, new Comparator() {
+            });
+        } else {
+            Collections.sort(lines, new Comparator() {
 
-                    public int compare(Object object1, Object object2) {
-                        OpenAcdLine line1 = (OpenAcdLine) object1;
-                        OpenAcdLine line2 = (OpenAcdLine) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(createLineRestInfo(line2).m_actions
-                                .getClient().getIdentity(), createLineRestInfo(line1).m_actions.getClient()
-                                .getIdentity());
-                    }
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(line2.getDid(), line1.getDid());
+                }
 
-                });
-                break;
-            }
+            });
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void sortLinesByQueue(List<OpenAcdLine> lines, boolean directionForward) {
+        if (directionForward) {
+            Collections.sort(lines, new Comparator() {
+
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(createLineRestInfo(line1).m_actions
+                            .getQueue().getName(), createLineRestInfo(line2).m_actions.getQueue().getName());
+                }
+
+            });
+        } else {
+            Collections.sort(lines, new Comparator() {
+
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(createLineRestInfo(line2).m_actions
+                            .getQueue().getName(), createLineRestInfo(line1).m_actions.getQueue().getName());
+                }
+
+            });
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void sortLinesByClient(List<OpenAcdLine> lines, boolean directionForward) {
+        if (directionForward) {
+            Collections.sort(lines, new Comparator() {
+
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(createLineRestInfo(line1).m_actions
+                            .getClient().getIdentity(), createLineRestInfo(line2).m_actions.getClient()
+                            .getIdentity());
+                }
+
+            });
+        } else {
+            Collections.sort(lines, new Comparator() {
+
+                public int compare(Object object1, Object object2) {
+                    OpenAcdLine line1 = (OpenAcdLine) object1;
+                    OpenAcdLine line2 = (OpenAcdLine) object2;
+                    return RestUtilities.compareIgnoreCaseNullSafe(createLineRestInfo(line2).m_actions
+                            .getClient().getIdentity(), createLineRestInfo(line1).m_actions.getClient()
+                            .getIdentity());
+                }
+
+            });
         }
     }
 
@@ -612,8 +660,9 @@ public class OpenAcdLinesResource extends UserResource {
                 OpenAcdLine.createClientAction(lineRestInfo.getActions().getClient().getIdentity()));
 
         // web ui only displays filename and appends audio directory
-        // line.getNumberCondition().addAction(OpenAcdLine.createPlaybackAction(m_openAcdContext.getSettings().getAudioDirectory()
-        // + "/" + lineRestInfo.getActions().getWelcomeMessage()));
+        // line.getNumberCondition().addAction(OpenAcdLine.createPlaybackAction(
+        // m_openAcdContext.getSettings().getAudioDirectory() + "/" +
+        // lineRestInfo.getActions().getWelcomeMessage()));
         line.getNumberCondition().addAction(
                 OpenAcdLine.createPlaybackAction(lineRestInfo.getActions().getWelcomeMessage()));
 
@@ -654,8 +703,9 @@ public class OpenAcdLinesResource extends UserResource {
                 OpenAcdLine.createClientAction(lineRestInfo.getActions().getClient().getIdentity()));
 
         // web ui only displays filename and appends audio directory
-        // line.getNumberCondition().addAction(OpenAcdLine.createPlaybackAction(m_openAcdContext.getSettings().getAudioDirectory()
-        // + "/" + lineRestInfo.getActions().getWelcomeMessage()));
+        // line.getNumberCondition().addAction(OpenAcdLine.createPlaybackAction(
+        // m_openAcdContext.getSettings().getAudioDirectory() + "/" +
+        // lineRestInfo.getActions().getWelcomeMessage()));
         line.getNumberCondition().addAction(
                 OpenAcdLine.createPlaybackAction(lineRestInfo.getActions().getWelcomeMessage()));
 
@@ -675,9 +725,9 @@ public class OpenAcdLinesResource extends UserResource {
     private Integer getAnswerSupervisionCode(String answerSupervisionType) {
         Integer answerSupervisionCode;
 
-        if (StringUtils.equalsIgnoreCase(answerSupervisionType, "FS")) {
+        if (StringUtils.equalsIgnoreCase(answerSupervisionType, SUPERVISION_TYPE_FS)) {
             answerSupervisionCode = OpenAcdLine.FS;
-        } else if (StringUtils.equalsIgnoreCase(answerSupervisionType, "AGENT")) {
+        } else if (StringUtils.equalsIgnoreCase(answerSupervisionType, SUPERVISION_TYPE_AGENT)) {
             answerSupervisionCode = OpenAcdLine.AGENT;
         } else {
             answerSupervisionCode = OpenAcdLine.ACD;
@@ -701,9 +751,9 @@ public class OpenAcdLinesResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("openacd-line", OpenAcdLinesBundleRestInfo.class);
-            xstream.alias("line", OpenAcdLineRestInfo.class);
-            xstream.alias("action", OpenAcdLineActionRestInfo.class);
+            xstream.alias(ELEMENT_NAME_LINEBUNDLE, OpenAcdLinesBundleRestInfo.class);
+            xstream.alias(ELEMENT_NAME_LINE, OpenAcdLineRestInfo.class);
+            xstream.alias(ELEMENT_NAME_ACTION, OpenAcdLineActionRestInfo.class);
         }
     }
 
@@ -719,8 +769,8 @@ public class OpenAcdLinesResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("line", OpenAcdLineRestInfo.class);
-            xstream.alias("action", OpenAcdLineActionRestInfo.class);
+            xstream.alias(ELEMENT_NAME_LINE, OpenAcdLineRestInfo.class);
+            xstream.alias(ELEMENT_NAME_ACTION, OpenAcdLineActionRestInfo.class);
         }
     }
 
@@ -830,7 +880,8 @@ public class OpenAcdLinesResource extends UserResource {
 
         public OpenAcdLineActionsBundleRestInfo(OpenAcdQueueRestInfo queueRestInfo,
                 OpenAcdClientRestInfo clientRestInfo, boolean allowVoicemail,
-                List<OpenAcdLineActionRestInfo> customActions, String answerSupervisionType, String welcomeMessage) {
+                List<OpenAcdLineActionRestInfo> customActions, String answerSupervisionType,
+                String welcomeMessage) {
             m_queue = queueRestInfo;
             m_client = clientRestInfo;
             m_allowVoicemail = allowVoicemail;

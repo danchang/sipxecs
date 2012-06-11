@@ -1,8 +1,8 @@
 /*
  *
- *  UserGroupPermissionsResource.java - A Restlet to read User Group data with Permissions from SipXecs
  *  Copyright (C) 2012 PATLive, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  UserGroupPermissionsResource.java - A Restlet to read User Group data with Permissions from SipXecs
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -38,11 +38,13 @@ import org.restlet.data.Response;
 import org.restlet.resource.Representation;
 import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
+import org.sipfoundry.sipxconfig.branch.Branch;
 import org.sipfoundry.sipxconfig.common.User;
 import org.sipfoundry.sipxconfig.permission.Permission;
 import org.sipfoundry.sipxconfig.permission.PermissionManager;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.MetadataRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.PaginationInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.ResponseCode;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SettingPermissionRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SortInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.ValidationInfo;
@@ -51,6 +53,10 @@ import org.springframework.beans.factory.annotation.Required;
 import com.thoughtworks.xstream.XStream;
 
 public class UserPermissionsResource extends UserResource {
+
+    private static final String ELEMENT_NAME_USERPERMISSIONBUNDLE = "user-permission";
+    private static final String ELEMENT_NAME_USERPERMISSION = "user";
+    private static final String ELEMENT_NAME_SETTINGPERMISSION = "setting";
 
     private PermissionManager m_permissionManager;
     private Form m_form;
@@ -103,21 +109,22 @@ public class UserPermissionsResource extends UserResource {
         // process request for single
         int idInt;
         UserPermissionRestInfoFull userPermissionRestInfo = null;
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                        "ID " + idString + " not found.");
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
             }
 
             try {
                 userPermissionRestInfo = createUserPermissionRestInfo(idInt);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
-                        "Read User failed", exception.getLocalizedMessage());
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_READ_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
             }
 
             return new UserPermissionRepresentation(variant.getMediaType(), userPermissionRestInfo);
@@ -127,20 +134,25 @@ public class UserPermissionsResource extends UserResource {
         List<User> users;
         Collection<Integer> userIds;
 
-        String branchIdString = m_form.getFirstValue("branch");
-        String idListString = m_form.getFirstValue("ids");
+        String branchIdString = m_form.getFirstValue(RestUtilities.REQUEST_ATTRIBUTE_BRANCH);
+        String idListString = m_form.getFirstValue(RestUtilities.REQUEST_ATTRIBUTE_IDLIST);
         int branchId;
 
+        // check if searching by branch
         if ((branchIdString != null) && (branchIdString != "")) {
             try {
                 branchId = RestUtilities.getIntFromAttribute(branchIdString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                        "Branch ID " + branchIdString + " not found.");
+                return RestUtilities.getResponseError(
+                        getResponse(),
+                        ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID,
+                                Branch.class.getSimpleName() + ":" + branchIdString));
             }
 
-            userIds = getCoreContext().getBranchMembersByPage(branchId, 0,
-                    getCoreContext().getBranchMembersCount(branchId));
+            userIds =
+                    getCoreContext().getBranchMembersByPage(branchId, 0,
+                            getCoreContext().getBranchMembersCount(branchId));
             users = getUsers(userIds);
         } else if ((idListString != null) && (!idListString.isEmpty())) {
             // searching by id list
@@ -152,8 +164,8 @@ public class UserPermissionsResource extends UserResource {
                 try {
                     idInt = RestUtilities.getIntFromAttribute(id);
                 } catch (Exception exception) {
-                    return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                            "ID " + id + " not found.");
+                    return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                            RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, id));
                 }
 
                 user = getCoreContext().getUser(idInt);
@@ -165,7 +177,8 @@ public class UserPermissionsResource extends UserResource {
             users = getCoreContext().loadUsersByPage(1, getCoreContext().getAllUsersCount());
         }
 
-        List<UserPermissionRestInfoFull> userPermissionsRestInfo = new ArrayList<UserPermissionRestInfoFull>();
+        List<UserPermissionRestInfoFull> userPermissionsRestInfo =
+                new ArrayList<UserPermissionRestInfoFull>();
         MetadataRestInfo metadataRestInfo;
 
         // sort if specified
@@ -175,8 +188,8 @@ public class UserPermissionsResource extends UserResource {
         metadataRestInfo = addUsers(userPermissionsRestInfo, users);
 
         // create final restinfo
-        UserPermissionsBundleRestInfo userPermissionsBundleRestInfo = new UserPermissionsBundleRestInfo(
-                userPermissionsRestInfo, metadataRestInfo);
+        UserPermissionsBundleRestInfo userPermissionsBundleRestInfo =
+                new UserPermissionsBundleRestInfo(userPermissionsRestInfo, metadataRestInfo);
 
         return new UserPermissionsRepresentation(variant.getMediaType(), userPermissionsBundleRestInfo);
     }
@@ -194,21 +207,22 @@ public class UserPermissionsResource extends UserResource {
         // validate input for update or create
         ValidationInfo validationInfo = validate(userPermissionRestInfo);
 
-        if (!validationInfo.valid) {
-            RestUtilities.setResponseError(getResponse(), validationInfo.responseCode, validationInfo.message);
+        if (!validationInfo.getValid()) {
+            RestUtilities.setResponseError(getResponse(), validationInfo.getResponseCode(),
+                    validationInfo.getMessage());
             return;
         }
 
         // if have id then update single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 user = getCoreContext().getUser(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
@@ -217,19 +231,22 @@ public class UserPermissionsResource extends UserResource {
                 updateUserPermission(user, userPermissionRestInfo);
                 getCoreContext().saveUser(user);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                        "Update User Permissions failed", exception.getLocalizedMessage());
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED,
-                    "Updated User Permissions", user.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()), user
+                    .getId());
 
             return;
         }
 
         // otherwise error, since no creation of new permissions
-        RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Missing ID");
+        RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_MISSING_ID, RestUtilities
+                .getResponseMessage(ResponseCode.ERROR_MISSING_ID, this.getClass().getSimpleName()));
     }
 
     // Helper functions
@@ -287,22 +304,24 @@ public class UserPermissionsResource extends UserResource {
 
             defaultValue = permission.getDefaultValue();
 
-            settingRestInfo = new SettingPermissionRestInfo(permissionName, permissionLabel, permissionValue,
-                    defaultValue);
+            settingRestInfo =
+                    new SettingPermissionRestInfo(permissionName, permissionLabel, permissionValue,
+                            defaultValue);
             settings.add(settingRestInfo);
         }
 
         return settings;
     }
 
-    private MetadataRestInfo addUsers(List<UserPermissionRestInfoFull> userPermissionsRestInfo, List<User> users) {
+    private MetadataRestInfo addUsers(List<UserPermissionRestInfoFull> userPermissionsRestInfo,
+            List<User> users) {
         UserPermissionRestInfoFull userPermissionRestInfo;
 
         // determine pagination
         PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, users.size());
 
         // create list of restinfos
-        for (int index = paginationInfo.startIndex; index <= paginationInfo.endIndex; index++) {
+        for (int index = paginationInfo.getStartIndex(); index <= paginationInfo.getEndIndex(); index++) {
             User user = users.get(index);
 
             userPermissionRestInfo = createUserPermissionRestInfo(user);
@@ -318,13 +337,13 @@ public class UserPermissionsResource extends UserResource {
         // sort if requested
         SortInfo sortInfo = RestUtilities.calculateSorting(m_form);
 
-        if (!sortInfo.sort) {
+        if (!sortInfo.getSort()) {
             return;
         }
 
-        SortField sortField = SortField.toSortField(sortInfo.sortField);
+        SortField sortField = SortField.toSortField(sortInfo.getSortField());
 
-        if (sortInfo.directionForward) {
+        if (sortInfo.getDirectionForward()) {
 
             switch (sortField) {
             case LASTNAME:
@@ -349,6 +368,9 @@ public class UserPermissionsResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         } else {
@@ -376,6 +398,9 @@ public class UserPermissionsResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         }
@@ -417,9 +442,9 @@ public class UserPermissionsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("user-permission", UserPermissionsBundleRestInfo.class);
-            xstream.alias("user", UserPermissionRestInfoFull.class);
-            xstream.alias("setting", SettingPermissionRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USERPERMISSIONBUNDLE, UserPermissionsBundleRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USERPERMISSION, UserPermissionRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_SETTINGPERMISSION, SettingPermissionRestInfo.class);
         }
     }
 
@@ -435,8 +460,8 @@ public class UserPermissionsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("user", UserPermissionRestInfoFull.class);
-            xstream.alias("setting", SettingPermissionRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USERPERMISSION, UserPermissionRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_SETTINGPERMISSION, SettingPermissionRestInfo.class);
         }
     }
 

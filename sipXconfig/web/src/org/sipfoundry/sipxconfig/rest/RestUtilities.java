@@ -1,8 +1,8 @@
 /*
  *
- *  OpenAcdUtilities.java - Support functionality for OpenAcd Restlets
  *  Copyright (C) 2012 PATLive, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  OpenAcdUtilities.java - Support functionality for OpenAcd Restlets
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -50,7 +50,30 @@ import org.sipfoundry.sipxconfig.setting.Group;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
-public class RestUtilities {
+public final class RestUtilities {
+    public static final String EMPTY_STRING = "";
+    public static final String ID = "id";
+
+    public static final String REQUEST_ATTRIBUTE_ID = ID;
+    public static final String REQUEST_ATTRIBUTE_NAME = "name";
+    public static final String REQUEST_ATTRIBUTE_BRANCH = "branch";
+    public static final String REQUEST_ATTRIBUTE_IDLIST = "ids";
+
+    public static final String ELEMENT_DATA = "data";
+    public static final String ELEMENT_ID = ID;
+    public static final String ELEMENT_RESPONSE = "response";
+    public static final String ELEMENT_ADDITIONAL_MESSAGE = "additionalMessage";
+    public static final String ELEMENT_CODE = "code";
+    public static final String ELEMENT_MESSAGE = "message";
+
+    public static enum ResponseCode {
+        SUCCESS, SUCCESS_CREATED, SUCCESS_UPDATED, SUCCESS_DELETED, ERROR_MISSING_ID, ERROR_BAD_ID,
+        ERROR_BAD_INPUT, ERROR_UPDATE_FAILED, ERROR_CREATE_FAILED, ERROR_READ_FAILED, ERROR_REFERENCE_EXISTS
+    }
+
+    private RestUtilities() {
+        // hide default constructor
+    }
 
     public static int getIntFromAttribute(String attributeString) throws ResourceException {
         int intFromAttribute;
@@ -68,7 +91,7 @@ public class RestUtilities {
 
     public static PaginationInfo calculatePagination(Form form, int totalResults) {
         PaginationInfo paginationInfo = new PaginationInfo();
-        paginationInfo.totalResults = totalResults;
+        paginationInfo.setTotalResults(totalResults);
 
         // must specify both PageNumber and ResultsPerPage together
         String pageNumberString = form.getFirstValue("page");
@@ -76,53 +99,57 @@ public class RestUtilities {
 
         // attempt to parse pagination values from request
         try {
-            paginationInfo.pageNumber = Integer.parseInt(pageNumberString);
-            paginationInfo.resultsPerPage = Integer.parseInt(resultsPerPageString);
+            paginationInfo.setPageNumber(Integer.parseInt(pageNumberString));
+            paginationInfo.setResultsPerPage(Integer.parseInt(resultsPerPageString));
         } catch (Exception exception) {
             // default 0 for nothing
-            paginationInfo.pageNumber = 0;
-            paginationInfo.resultsPerPage = 0;
+            paginationInfo.setPageNumber(0);
+            paginationInfo.setResultsPerPage(0);
         }
 
         // check for outrageous values or lack of parameters
-        if ((paginationInfo.pageNumber < 1) || (paginationInfo.resultsPerPage < 1)) {
-            paginationInfo.pageNumber = 0;
-            paginationInfo.resultsPerPage = 0;
-            paginationInfo.paginate = false;
+        if ((paginationInfo.getPageNumber() < 1) || (paginationInfo.getResultsPerPage() < 1)) {
+            paginationInfo.setPageNumber(0);
+            paginationInfo.setResultsPerPage(0);
+            paginationInfo.setPaginate(false);
         } else {
-            paginationInfo.paginate = true;
+            paginationInfo.setPaginate(true);
         }
 
         // do we have to paginate?
-        if (paginationInfo.paginate) {
-            paginationInfo.totalPages = ((paginationInfo.totalResults - 1) / paginationInfo.resultsPerPage) + 1;
+        if (paginationInfo.getPaginate()) {
+            paginationInfo.setTotalPages(((paginationInfo.getTotalResults() - 1) / paginationInfo
+                    .getResultsPerPage()) + 1);
 
             // check if only one page
             // if (resultsPerPage >= totalResults) {
-            if (paginationInfo.totalPages == 1) {
-                paginationInfo.startIndex = 0;
-                paginationInfo.endIndex = paginationInfo.totalResults - 1;
-                paginationInfo.pageNumber = 1;
+            if (paginationInfo.getTotalPages() == 1) {
+                paginationInfo.setStartIndex(0);
+                paginationInfo.setEndIndex(paginationInfo.getTotalResults() - 1);
+                paginationInfo.setPageNumber(1);
                 // design decision: should the resultsPerPage actually be set to totalResults?
                 // since totalResults are already available preserve call value
             } else {
                 // check if specified page number is on or beyoned last page (then use last page)
-                if (paginationInfo.pageNumber >= paginationInfo.totalPages) {
-                    paginationInfo.pageNumber = paginationInfo.totalPages;
-                    paginationInfo.startIndex = (paginationInfo.totalPages - 1) * paginationInfo.resultsPerPage;
-                    paginationInfo.endIndex = paginationInfo.totalResults - 1;
+                if (paginationInfo.getPageNumber() >= paginationInfo.getTotalPages()) {
+                    paginationInfo.setPageNumber(paginationInfo.getTotalPages());
+                    paginationInfo.setStartIndex((paginationInfo.getTotalPages() - 1)
+                            * paginationInfo.getResultsPerPage());
+                    paginationInfo.setEndIndex(paginationInfo.getTotalResults() - 1);
                 } else {
-                    paginationInfo.startIndex = (paginationInfo.pageNumber - 1) * paginationInfo.resultsPerPage;
-                    paginationInfo.endIndex = paginationInfo.startIndex + paginationInfo.resultsPerPage - 1;
+                    paginationInfo.setStartIndex((paginationInfo.getPageNumber() - 1)
+                            * paginationInfo.getResultsPerPage());
+                    paginationInfo.setEndIndex(paginationInfo.getStartIndex()
+                            + paginationInfo.getResultsPerPage() - 1);
                 }
             }
         } else {
             // default values assuming no pagination
-            paginationInfo.startIndex = 0;
-            paginationInfo.endIndex = paginationInfo.totalResults - 1;
-            paginationInfo.pageNumber = 1;
-            paginationInfo.totalPages = 1;
-            paginationInfo.resultsPerPage = paginationInfo.totalResults;
+            paginationInfo.setStartIndex(0);
+            paginationInfo.setEndIndex(paginationInfo.getTotalResults() - 1);
+            paginationInfo.setPageNumber(1);
+            paginationInfo.setTotalPages(1);
+            paginationInfo.setResultsPerPage(paginationInfo.getTotalResults());
         }
 
         return paginationInfo;
@@ -136,37 +163,43 @@ public class RestUtilities {
 
         // check for invalid input
         if ((sortDirectionString == null) || (sortFieldString == null)) {
-            sortInfo.sort = false;
+            sortInfo.setSort(false);
             return sortInfo;
         }
 
         if ((sortDirectionString.isEmpty()) || (sortFieldString.isEmpty())) {
-            sortInfo.sort = false;
+            sortInfo.setSort(false);
             return sortInfo;
         }
 
-        sortInfo.sort = true;
+        sortInfo.setSort(true);
 
         // assume forward if get anything else but "reverse"
         if (sortDirectionString.toLowerCase().equals("reverse")) {
-            sortInfo.directionForward = false;
+            sortInfo.setDirectionForward(false);
         } else {
-            sortInfo.directionForward = true;
+            sortInfo.setDirectionForward(true);
         }
 
         // tough to type-check this one
-        sortInfo.sortField = sortFieldString;
+        sortInfo.setSortField(sortFieldString);
 
         return sortInfo;
     }
 
     public static int compareIgnoreCaseNullSafe(String left, String right) {
-        if (left == null)
-            left = "";
-        if (right == null)
-            right = "";
+        String leftString = left;
+        String rightString = right;
 
-        return left.compareToIgnoreCase(right);
+        if (leftString == null) {
+            leftString = EMPTY_STRING;
+        }
+
+        if (rightString == null) {
+            rightString = EMPTY_STRING;
+        }
+
+        return leftString.compareToIgnoreCase(rightString);
     }
 
     // XML Response functions
@@ -181,7 +214,7 @@ public class RestUtilities {
             setResponseStatus(response, code);
 
             // create root node
-            Element elementResponse = doc.createElement("response");
+            Element elementResponse = doc.createElement(ELEMENT_RESPONSE);
             doc.appendChild(elementResponse);
 
             setResponseHeader(doc, elementResponse, code, message);
@@ -205,14 +238,14 @@ public class RestUtilities {
             setResponseStatus(response, code);
 
             // create root node
-            Element elementResponse = doc.createElement("response");
+            Element elementResponse = doc.createElement(ELEMENT_RESPONSE);
             doc.appendChild(elementResponse);
 
             setResponseHeader(doc, elementResponse, code, message);
 
             // add related data
-            Element elementData = doc.createElement("data");
-            Element elementId = doc.createElement("id");
+            Element elementData = doc.createElement(ELEMENT_DATA);
+            Element elementId = doc.createElement(ELEMENT_ID);
             elementId.appendChild(doc.createTextNode(String.valueOf(id)));
             elementData.appendChild(elementId);
             elementResponse.appendChild(elementData);
@@ -234,14 +267,14 @@ public class RestUtilities {
             setResponseStatus(response, code);
 
             // create root node
-            Element elementResponse = doc.createElement("response");
+            Element elementResponse = doc.createElement(ELEMENT_RESPONSE);
             doc.appendChild(elementResponse);
 
             setResponseHeader(doc, elementResponse, code, message);
 
             // add related data
-            Element elementData = doc.createElement("data");
-            Element elementId = doc.createElement("id");
+            Element elementData = doc.createElement(ELEMENT_DATA);
+            Element elementId = doc.createElement(ELEMENT_ID);
             elementId.appendChild(doc.createTextNode(id));
             elementData.appendChild(elementId);
             elementResponse.appendChild(elementData);
@@ -269,7 +302,7 @@ public class RestUtilities {
             setResponseStatus(response, code);
 
             // create root node
-            Element elementResponse = doc.createElement("response");
+            Element elementResponse = doc.createElement(ELEMENT_RESPONSE);
             doc.appendChild(elementResponse);
 
             setResponseHeader(doc, elementResponse, code, message);
@@ -301,14 +334,14 @@ public class RestUtilities {
             setResponseStatus(response, code);
 
             // create root node
-            Element elementResponse = doc.createElement("response");
+            Element elementResponse = doc.createElement(ELEMENT_RESPONSE);
             doc.appendChild(elementResponse);
 
             setResponseHeader(doc, elementResponse, code, message);
 
             // add related data
-            Element elementData = doc.createElement("data");
-            Element elementId = doc.createElement("additionalMessage");
+            Element elementData = doc.createElement(ELEMENT_DATA);
+            Element elementId = doc.createElement(ELEMENT_ADDITIONAL_MESSAGE);
             elementId.appendChild(doc.createTextNode(additionalMessage));
             elementData.appendChild(elementId);
             elementResponse.appendChild(elementData);
@@ -323,16 +356,69 @@ public class RestUtilities {
         return null;
     }
 
-    private static void setResponseHeader(Document doc, Element elementResponse, ResponseCode code, String message) {
+    private static void setResponseHeader(Document doc, Element elementResponse, ResponseCode code,
+            String message) {
 
         // add standard elements
-        Element elementCode = doc.createElement("code");
+        Element elementCode = doc.createElement(ELEMENT_CODE);
         elementCode.appendChild(doc.createTextNode(code.toString()));
         elementResponse.appendChild(elementCode);
 
-        Element elementMessage = doc.createElement("message");
+        Element elementMessage = doc.createElement(ELEMENT_MESSAGE);
         elementMessage.appendChild(doc.createTextNode(message));
         elementResponse.appendChild(elementMessage);
+    }
+
+    public static String getResponseMessage(ResponseCode responseCode, String content) {
+        String errorMessage;
+
+        switch (responseCode) {
+        case ERROR_BAD_ID:
+            errorMessage = "ID " + content + " not found";
+            break;
+
+        case ERROR_MISSING_ID:
+            errorMessage = "ID value missing from request: " + content;
+            break;
+
+        case ERROR_READ_FAILED:
+            errorMessage = "Read failed: " + content;
+            break;
+
+        case ERROR_UPDATE_FAILED:
+            errorMessage = "Update failed: " + content;
+            break;
+
+        case ERROR_CREATE_FAILED:
+            errorMessage = "Create failed: " + content;
+            break;
+
+        case ERROR_BAD_INPUT:
+            errorMessage = "Input is invalid" + content;
+            break;
+
+        case ERROR_REFERENCE_EXISTS:
+            errorMessage = "Reference to object still exists: " + content;
+            break;
+
+        case SUCCESS_UPDATED:
+            errorMessage = "Updated: " + content;
+            break;
+
+        case SUCCESS_CREATED:
+            errorMessage = "Created: " + content;
+            break;
+
+        case SUCCESS_DELETED:
+            errorMessage = "Deleted: " + content;
+            break;
+
+        default:
+            errorMessage = "Unhandled messageType: " + content;
+            break;
+        }
+
+        return errorMessage;
     }
 
     private static void setResponseStatus(Response response, ResponseCode code) {
@@ -342,19 +428,39 @@ public class RestUtilities {
             response.setStatus(Status.SUCCESS_CREATED);
             break;
 
-        case ERROR_MISSING_INPUT:
+        case SUCCESS_DELETED:
+            response.setStatus(Status.SUCCESS_OK);
+            break;
+
+        case SUCCESS_UPDATED:
+            response.setStatus(Status.SUCCESS_OK);
+            break;
+
+        case ERROR_MISSING_ID:
             response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
             break;
 
-        case ERROR_BAD_INPUT:
+        case ERROR_BAD_ID:
             response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
             break;
 
-        case ERROR_WRITE_FAILED:
+        case ERROR_UPDATE_FAILED:
+            response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
+            break;
+
+        case ERROR_CREATE_FAILED:
             response.setStatus(Status.CLIENT_ERROR_BAD_REQUEST);
             break;
 
         case ERROR_READ_FAILED:
+            response.setStatus(Status.SERVER_ERROR_INTERNAL);
+            break;
+
+        case ERROR_BAD_INPUT:
+            response.setStatus(Status.SERVER_ERROR_INTERNAL);
+            break;
+
+        case ERROR_REFERENCE_EXISTS:
             response.setStatus(Status.SERVER_ERROR_INTERNAL);
             break;
 
@@ -363,33 +469,133 @@ public class RestUtilities {
         }
     }
 
-    public static enum ResponseCode {
-        SUCCESS, SUCCESS_CREATED, SUCCESS_UPDATED, SUCCESS_DELETED, ERROR_MISSING_INPUT, ERROR_BAD_INPUT, ERROR_WRITE_FAILED, ERROR_READ_FAILED
-    }
-
     // Data objects
     // ------------
 
     public static class PaginationInfo {
-        Boolean paginate = false;
-        int pageNumber = 0;
-        int resultsPerPage = 0;
-        int totalPages = 0;
-        int totalResults = 0;
-        int startIndex = 0;
-        int endIndex = 0;
+        private Boolean m_paginate = false;
+        private int m_pageNumber;
+        private int m_resultsPerPage;
+        private int m_totalPages;
+        private int m_totalResults;
+        private int m_startIndex;
+        private int m_endIndex;
+
+        Boolean getPaginate() {
+            return m_paginate;
+        }
+
+        void setPaginate(Boolean paginate) {
+            this.m_paginate = paginate;
+        }
+
+        int getPageNumber() {
+            return m_pageNumber;
+        }
+
+        void setPageNumber(int pageNumber) {
+            this.m_pageNumber = pageNumber;
+        }
+
+        int getResultsPerPage() {
+            return m_resultsPerPage;
+        }
+
+        void setResultsPerPage(int resultsPerPage) {
+            this.m_resultsPerPage = resultsPerPage;
+        }
+
+        int getTotalPages() {
+            return m_totalPages;
+        }
+
+        void setTotalPages(int totalPages) {
+            this.m_totalPages = totalPages;
+        }
+
+        int getTotalResults() {
+            return m_totalResults;
+        }
+
+        void setTotalResults(int totalResults) {
+            this.m_totalResults = totalResults;
+        }
+
+        int getStartIndex() {
+            return m_startIndex;
+        }
+
+        void setStartIndex(int startIndex) {
+            this.m_startIndex = startIndex;
+        }
+
+        int getEndIndex() {
+            return m_endIndex;
+        }
+
+        void setEndIndex(int endIndex) {
+            this.m_endIndex = endIndex;
+        }
     }
 
     public static class SortInfo {
-        Boolean sort = false;
-        Boolean directionForward = true;
-        String sortField = "";
+        private Boolean m_sort = false;
+        private Boolean m_directionForward = true;
+        private String m_sortField = EMPTY_STRING;
+
+        Boolean getSort() {
+            return m_sort;
+        }
+
+        void setSort(Boolean sort) {
+            this.m_sort = sort;
+        }
+
+        Boolean getDirectionForward() {
+            return m_directionForward;
+        }
+
+        void setDirectionForward(Boolean directionForward) {
+            this.m_directionForward = directionForward;
+        }
+
+        String getSortField() {
+            return m_sortField;
+        }
+
+        void setSortField(String sortField) {
+            this.m_sortField = sortField;
+        }
     }
 
     public static class ValidationInfo {
-        Boolean valid = true;
-        String message = "Valid";
-        ResponseCode responseCode = ResponseCode.SUCCESS;
+        private Boolean m_valid = true;
+        private String m_message = "Valid";
+        private ResponseCode m_responseCode = ResponseCode.SUCCESS;
+
+        Boolean getValid() {
+            return m_valid;
+        }
+
+        void setValid(Boolean valid) {
+            this.m_valid = valid;
+        }
+
+        String getMessage() {
+            return m_message;
+        }
+
+        void setMessage(String message) {
+            this.m_message = message;
+        }
+
+        ResponseCode getResponseCode() {
+            return m_responseCode;
+        }
+
+        void setResponseCode(ResponseCode responseCode) {
+            this.m_responseCode = responseCode;
+        }
     }
 
     // Common Rest Info objects
@@ -558,7 +764,8 @@ public class RestUtilities {
     static class UserGroupPermissionRestInfoFull extends UserGroupRestInfo {
         private final List<SettingPermissionRestInfo> m_permissions;
 
-        public UserGroupPermissionRestInfoFull(Group userGroup, List<SettingPermissionRestInfo> settingsRestInfo) {
+        public UserGroupPermissionRestInfoFull(Group userGroup,
+                List<SettingPermissionRestInfo> settingsRestInfo) {
             super(userGroup);
 
             m_permissions = settingsRestInfo;
@@ -588,7 +795,7 @@ public class RestUtilities {
             m_userName = user.getUserName();
             m_lastName = user.getLastName();
             m_firstName = user.getFirstName();
-            m_pin = ""; // pin is hardcoded to never display but must still be submitted
+            m_pin = EMPTY_STRING; // pin is hardcoded to never display but must still be submitted
             m_sipPassword = user.getSipPassword();
             m_emailAddress = user.getEmailAddress();
             m_groups = userGroupsRestInfo;
@@ -660,10 +867,10 @@ public class RestUtilities {
         private final int m_resultsPerPage;
 
         public MetadataRestInfo(PaginationInfo paginationInfo) {
-            m_totalResults = paginationInfo.totalResults;
-            m_currentPage = paginationInfo.pageNumber;
-            m_totalPages = paginationInfo.totalPages;
-            m_resultsPerPage = paginationInfo.resultsPerPage;
+            m_totalResults = paginationInfo.getTotalResults();
+            m_currentPage = paginationInfo.getPageNumber();
+            m_totalPages = paginationInfo.getTotalPages();
+            m_resultsPerPage = paginationInfo.getResultsPerPage();
         }
 
         public int getTotalResults() {
@@ -897,7 +1104,8 @@ public class RestUtilities {
         private final OpenAcdRecipeActionRestInfo m_action;
         private final String m_frequency;
 
-        public OpenAcdRecipeStepRestInfo(OpenAcdRecipeStep step, OpenAcdRecipeActionRestInfo recipeActionRestInfo,
+        public OpenAcdRecipeStepRestInfo(OpenAcdRecipeStep step,
+                OpenAcdRecipeActionRestInfo recipeActionRestInfo,
                 List<OpenAcdRecipeConditionRestInfo> conditions) {
             m_id = step.getId();
             m_conditions = conditions;

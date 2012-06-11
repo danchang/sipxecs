@@ -1,8 +1,8 @@
 /*
  *
- *  PermissionsResource.java - A Restlet to read Skill data from SipXecs
  *  Copyright (C) 2012 PATLive, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  PermissionsResource.java - A Restlet to read Skill data from SipXecs
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -42,6 +42,7 @@ import org.sipfoundry.sipxconfig.permission.PermissionManager;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.MetadataRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.PaginationInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.PermissionRestInfoFull;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.ResponseCode;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SortInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.ValidationInfo;
 import org.springframework.beans.factory.annotation.Required;
@@ -49,6 +50,9 @@ import org.springframework.beans.factory.annotation.Required;
 import com.thoughtworks.xstream.XStream;
 
 public class PermissionsResource extends UserResource {
+
+    private static final String ELEMENT_NAME_PERMISSIONBUNDLE = "permissions";
+    private static final String ELEMENT_NAME_PERMISSION = "permission";
 
     private PermissionManager m_permissionManager;
     private Form m_form;
@@ -106,14 +110,15 @@ public class PermissionsResource extends UserResource {
         // process request for single
         // Permissions do not use Id, so must key off Name
         PermissionRestInfoFull permissionRestInfo = null;
-        String nameString = (String) getRequest().getAttributes().get("name");
+        String nameString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_NAME);
 
         if (nameString != null) {
             try {
                 permissionRestInfo = createPermissionRestInfo(nameString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
-                        "Read permissions failed", exception.getLocalizedMessage());
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_READ_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
             }
 
             return new PermissionRepresentation(variant.getMediaType(), permissionRestInfo);
@@ -131,8 +136,8 @@ public class PermissionsResource extends UserResource {
         metadataRestInfo = addPermissions(permissionsRestInfo, permissions);
 
         // create final restinfo
-        PermissionsBundleRestInfo permissionsBundleRestInfo = new PermissionsBundleRestInfo(permissionsRestInfo,
-                metadataRestInfo);
+        PermissionsBundleRestInfo permissionsBundleRestInfo =
+                new PermissionsBundleRestInfo(permissionsRestInfo, metadataRestInfo);
 
         return new PermissionsRepresentation(variant.getMediaType(), permissionsBundleRestInfo);
     }
@@ -150,20 +155,21 @@ public class PermissionsResource extends UserResource {
         // validate input for update or create
         ValidationInfo validationInfo = validate(permissionRestInfo);
 
-        if (!validationInfo.valid) {
-            RestUtilities.setResponseError(getResponse(), validationInfo.responseCode, validationInfo.message);
+        if (!validationInfo.getValid()) {
+            RestUtilities.setResponseError(getResponse(), validationInfo.getResponseCode(),
+                    validationInfo.getMessage());
             return;
         }
 
         // if have id then update single
-        String nameString = (String) getRequest().getAttributes().get("name");
+        String nameString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_NAME);
 
         if (nameString != null) {
             try {
                 permission = m_permissionManager.getPermissionByName(nameString);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Name "
-                        + nameString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, nameString));
                 return;
             }
 
@@ -172,13 +178,15 @@ public class PermissionsResource extends UserResource {
                 updatePermission(permission, permissionRestInfo);
                 m_permissionManager.saveCallPermission(permission);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                        "Update Permission failed", exception.getLocalizedMessage());
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED,
-                    "Updated Permission", permission.getName());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()),
+                    permission.getName());
 
             return;
         }
@@ -188,12 +196,14 @@ public class PermissionsResource extends UserResource {
             permission = createPermission(permissionRestInfo);
             m_permissionManager.saveCallPermission(permission);
         } catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                    "Create Permission failed", exception.getLocalizedMessage());
+            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_CREATE_FAILED,
+                    RestUtilities.getResponseMessage(ResponseCode.ERROR_CREATE_FAILED, this.getClass()
+                            .getSimpleName()), exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Permission",
+        RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_CREATED, RestUtilities
+                .getResponseMessage(ResponseCode.SUCCESS_CREATED, this.getClass().getSimpleName()),
                 permission.getName());
     }
 
@@ -205,28 +215,29 @@ public class PermissionsResource extends UserResource {
         Permission permission;
 
         // get id then delete single
-        String nameString = (String) getRequest().getAttributes().get("name");
+        String nameString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_NAME);
 
         if (nameString != null) {
             try {
                 permission = m_permissionManager.getPermissionByName(nameString);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Name "
-                        + nameString + " not found.");
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, nameString));
                 return;
             }
 
             m_permissionManager.deleteCallPermission(permission);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED,
-                    "Deleted Permission", permission.getName());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_DELETED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_DELETED, this.getClass().getSimpleName()),
+                    permission.getName());
 
             return;
         }
 
         // no id string
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT,
-                "Name value missing");
+        RestUtilities.setResponse(getResponse(), ResponseCode.ERROR_MISSING_ID, RestUtilities
+                .getResponseMessage(ResponseCode.ERROR_MISSING_ID, this.getClass().getSimpleName()));
     }
 
     // Helper functions
@@ -259,7 +270,7 @@ public class PermissionsResource extends UserResource {
         PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, permissions.size());
 
         // create list of restinfos
-        for (int index = paginationInfo.startIndex; index <= paginationInfo.endIndex; index++) {
+        for (int index = paginationInfo.getStartIndex(); index <= paginationInfo.getEndIndex(); index++) {
             Permission permission = permissions.get(index);
 
             permissionRestInfo = new PermissionRestInfoFull(permission);
@@ -275,13 +286,13 @@ public class PermissionsResource extends UserResource {
         // sort if requested
         SortInfo sortInfo = RestUtilities.calculateSorting(m_form);
 
-        if (!sortInfo.sort) {
+        if (!sortInfo.getSort()) {
             return;
         }
 
-        SortField sortField = SortField.toSortField(sortInfo.sortField);
+        SortField sortField = SortField.toSortField(sortInfo.getSortField());
 
-        if (sortInfo.directionForward) {
+        if (sortInfo.getDirectionForward()) {
 
             switch (sortField) {
             case LABEL:
@@ -317,7 +328,8 @@ public class PermissionsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(permission1.getName(), permission2.getName());
+                        return RestUtilities.compareIgnoreCaseNullSafe(permission1.getName(),
+                                permission2.getName());
                     }
 
                 });
@@ -334,6 +346,9 @@ public class PermissionsResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         } else {
@@ -372,7 +387,8 @@ public class PermissionsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Permission permission1 = (Permission) object1;
                         Permission permission2 = (Permission) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(permission2.getName(), permission1.getName());
+                        return RestUtilities.compareIgnoreCaseNullSafe(permission2.getName(),
+                                permission1.getName());
                     }
 
                 });
@@ -389,6 +405,9 @@ public class PermissionsResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         }
@@ -436,8 +455,8 @@ public class PermissionsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("permissions", PermissionsBundleRestInfo.class);
-            xstream.alias("permission", PermissionRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_PERMISSIONBUNDLE, PermissionsBundleRestInfo.class);
+            xstream.alias(ELEMENT_NAME_PERMISSION, PermissionRestInfoFull.class);
         }
     }
 
@@ -453,7 +472,7 @@ public class PermissionsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("permission", PermissionRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_PERMISSION, PermissionRestInfoFull.class);
         }
     }
 

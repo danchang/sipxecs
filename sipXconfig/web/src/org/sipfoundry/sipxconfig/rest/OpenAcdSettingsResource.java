@@ -1,8 +1,8 @@
 /*
  *
- *  OpenAcdSettingsResource.java - A Restlet to read Skill data from OpenACD within SipXecs
  *  Copyright (C) 2012 PATLive, D. Waseem, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  OpenAcdSettingsResource.java - A Restlet to read Skill data from OpenACD within SipXecs
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -33,11 +33,14 @@ import org.restlet.resource.ResourceException;
 import org.restlet.resource.Variant;
 import org.sipfoundry.sipxconfig.openacd.OpenAcdContext;
 import org.sipfoundry.sipxconfig.openacd.OpenAcdSettings;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.ResponseCode;
 import org.springframework.beans.factory.annotation.Required;
 
 import com.thoughtworks.xstream.XStream;
 
 public class OpenAcdSettingsResource extends UserResource {
+
+    private static final String ELEMENT_NAME_SETTING = "setting";
 
     private OpenAcdContext m_openAcdContext;
 
@@ -89,20 +92,22 @@ public class OpenAcdSettingsResource extends UserResource {
             updateSettings(settings, settingRestInfo);
             m_openAcdContext.saveSettings(settings);
         } catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                    "Assign Setting failed", exception.getLocalizedMessage());
+            RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED, RestUtilities
+                    .getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass().getSimpleName()),
+                    exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Assigned Setting",
-                settings.getId());
+        RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()), settings
+                .getId());
     }
 
     // Helper functions
     // ----------------
 
     private void updateSettings(OpenAcdSettings settings, OpenAcdSettingRestInfo settingRestInfo)
-            throws ResourceException {
+        throws ResourceException {
         settings.setSettingValue("openacd-config/log_level", settingRestInfo.getLogLevel());
     }
 
@@ -121,7 +126,7 @@ public class OpenAcdSettingsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("setting", OpenAcdSettingRestInfo.class);
+            xstream.alias(ELEMENT_NAME_SETTING, OpenAcdSettingRestInfo.class);
         }
     }
 

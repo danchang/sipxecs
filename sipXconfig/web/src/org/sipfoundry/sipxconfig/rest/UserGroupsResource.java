@@ -1,8 +1,8 @@
 /*
  *
- *  UserGroupsResource.java - A Restlet to read User Group data from SipXecs
  *  Copyright (C) 2012 PATLive, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  UserGroupsResource.java - A Restlet to read User Group data from SipXecs
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -43,6 +43,7 @@ import org.sipfoundry.sipxconfig.common.CoreContext;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.BranchRestInfoFull;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.MetadataRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.PaginationInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.ResponseCode;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SortInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.UserGroupRestInfoFull;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.ValidationInfo;
@@ -53,6 +54,9 @@ import org.springframework.beans.factory.annotation.Required;
 import com.thoughtworks.xstream.XStream;
 
 public class UserGroupsResource extends UserResource {
+
+    private static final String ELEMENT_NAME_USERGROUPBUNDLE = "user-group";
+    private static final String ELEMENT_NAME_USERGROUP = "group";
 
     private SettingDao m_settingContext; // saveGroup is not available through corecontext
     private BranchManager m_branchManager;
@@ -111,21 +115,22 @@ public class UserGroupsResource extends UserResource {
         // process request for single
         int idInt;
         UserGroupRestInfoFull userGroupRestInfo = null;
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                        "ID " + idString + " not found.");
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
             }
 
             try {
                 userGroupRestInfo = createUserGroupRestInfo(idInt);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
-                        "Read User Group failed", exception.getLocalizedMessage());
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_READ_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
             }
 
             return new UserGroupRepresentation(variant.getMediaType(), userGroupRestInfo);
@@ -145,8 +150,8 @@ public class UserGroupsResource extends UserResource {
         metadataRestInfo = addUserGroups(userGroupsRestInfo, userGroups);
 
         // create final restinfo
-        UserGroupsBundleRestInfo userGroupsBundleRestInfo = new UserGroupsBundleRestInfo(userGroupsRestInfo,
-                metadataRestInfo);
+        UserGroupsBundleRestInfo userGroupsBundleRestInfo =
+                new UserGroupsBundleRestInfo(userGroupsRestInfo, metadataRestInfo);
 
         return new UserGroupsRepresentation(variant.getMediaType(), userGroupsBundleRestInfo);
     }
@@ -164,21 +169,22 @@ public class UserGroupsResource extends UserResource {
         // validate input for update or create
         ValidationInfo validationInfo = validate(userGroupRestInfo);
 
-        if (!validationInfo.valid) {
-            RestUtilities.setResponseError(getResponse(), validationInfo.responseCode, validationInfo.message);
+        if (!validationInfo.getValid()) {
+            RestUtilities.setResponseError(getResponse(), validationInfo.getResponseCode(),
+                    validationInfo.getMessage());
             return;
         }
 
         // if have id then update single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 userGroup = m_settingContext.getGroup(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
@@ -187,13 +193,15 @@ public class UserGroupsResource extends UserResource {
                 updateUserGroup(userGroup, userGroupRestInfo);
                 m_settingContext.saveGroup(userGroup);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                        "Update User Group failed", exception.getLocalizedMessage());
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED,
-                    "Updated User Group", userGroup.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()),
+                    userGroup.getId());
 
             return;
         }
@@ -203,13 +211,15 @@ public class UserGroupsResource extends UserResource {
             userGroup = createUserGroup(userGroupRestInfo);
             m_settingContext.saveGroup(userGroup);
         } catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                    "Create User Group failed", exception.getLocalizedMessage());
+            RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_CREATE_FAILED, RestUtilities
+                    .getResponseMessage(ResponseCode.ERROR_CREATE_FAILED, this.getClass().getSimpleName()),
+                    exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created User Group",
-                userGroup.getId());
+        RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_CREATED, RestUtilities
+                .getResponseMessage(ResponseCode.SUCCESS_CREATED, this.getClass().getSimpleName()), userGroup
+                .getId());
     }
 
     // DELETE - Delete single Skill
@@ -221,15 +231,15 @@ public class UserGroupsResource extends UserResource {
         int idInt;
 
         // get id then delete single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
                 userGroup = m_settingContext.getGroup(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
@@ -237,14 +247,16 @@ public class UserGroupsResource extends UserResource {
             userGroupIds.add(idInt);
             m_settingContext.deleteGroups(userGroupIds);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED,
-                    "Deleted User Group", userGroup.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_DELETED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_DELETED, this.getClass().getSimpleName()),
+                    userGroup.getId());
 
             return;
         }
 
         // no id string
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
+        RestUtilities.setResponse(getResponse(), ResponseCode.ERROR_MISSING_ID, RestUtilities
+                .getResponseMessage(ResponseCode.ERROR_MISSING_ID, this.getClass().getSimpleName()));
     }
 
     // Helper functions
@@ -291,14 +303,15 @@ public class UserGroupsResource extends UserResource {
         return branchRestInfo;
     }
 
-    private MetadataRestInfo addUserGroups(List<UserGroupRestInfoFull> userGroupsRestInfo, List<Group> userGroups) {
+    private MetadataRestInfo addUserGroups(List<UserGroupRestInfoFull> userGroupsRestInfo,
+            List<Group> userGroups) {
         UserGroupRestInfoFull userGroupRestInfo;
 
         // determine pagination
         PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, userGroups.size());
 
         // create list of restinfos
-        for (int index = paginationInfo.startIndex; index <= paginationInfo.endIndex; index++) {
+        for (int index = paginationInfo.getStartIndex(); index <= paginationInfo.getEndIndex(); index++) {
             Group userGroup = userGroups.get(index);
 
             userGroupRestInfo = createUserGroupRestInfo(userGroup);
@@ -314,13 +327,13 @@ public class UserGroupsResource extends UserResource {
         // sort if requested
         SortInfo sortInfo = RestUtilities.calculateSorting(m_form);
 
-        if (!sortInfo.sort) {
+        if (!sortInfo.getSort()) {
             return;
         }
 
-        SortField sortField = SortField.toSortField(sortInfo.sortField);
+        SortField sortField = SortField.toSortField(sortInfo.getSortField());
 
-        if (sortInfo.directionForward) {
+        if (sortInfo.getDirectionForward()) {
 
             switch (sortField) {
             case NAME:
@@ -345,6 +358,9 @@ public class UserGroupsResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         } else {
@@ -372,6 +388,9 @@ public class UserGroupsResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         }
@@ -436,8 +455,8 @@ public class UserGroupsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("user-group", UserGroupsBundleRestInfo.class);
-            xstream.alias("group", UserGroupRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_USERGROUPBUNDLE, UserGroupsBundleRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USERGROUP, UserGroupRestInfoFull.class);
         }
     }
 
@@ -453,7 +472,7 @@ public class UserGroupsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("group", UserGroupRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_USERGROUP, UserGroupRestInfoFull.class);
         }
     }
 

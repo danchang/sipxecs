@@ -1,8 +1,8 @@
 /*
  *
- *  UsersResource.java - A Restlet to read User data from SipXecs
  *  Copyright (C) 2012 PATLive, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  UsersResource.java - A Restlet to read User data from SipXecs
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -50,6 +50,7 @@ import org.sipfoundry.sipxconfig.rest.RestUtilities.BranchRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.BranchRestInfoFull;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.MetadataRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.PaginationInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.ResponseCode;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SortInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.UserGroupRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.UserRestInfoFull;
@@ -60,6 +61,13 @@ import org.springframework.beans.factory.annotation.Required;
 import com.thoughtworks.xstream.XStream;
 
 public class UsersResource extends UserResource {
+    private static final String USER = "user";
+
+    private static final String ELEMENT_NAME_USERBUNDLE = USER;
+    private static final String ELEMENT_NAME_USER = USER;
+    private static final String ELEMENT_NAME_USERGROUP = "group";
+    private static final String ELEMENT_NAME_BRANCH = "branch";
+    private static final String ELEMENT_NAME_ALIAS = "alias";
 
     private BranchManager m_branchManager;
     private Form m_form;
@@ -117,21 +125,22 @@ public class UsersResource extends UserResource {
         // process request for single
         int idInt;
         UserRestInfoFull userRestInfo = null;
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                        "ID " + idString + " not found.");
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
             }
 
             try {
                 userRestInfo = createUserRestInfo(idInt);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
-                        "Read User failed", exception.getLocalizedMessage());
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_READ_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
             }
 
             return new UserRepresentation(variant.getMediaType(), userRestInfo);
@@ -141,8 +150,8 @@ public class UsersResource extends UserResource {
         List<User> users;
         Collection<Integer> userIds;
 
-        String branchIdString = m_form.getFirstValue("branch");
-        String idListString = m_form.getFirstValue("ids");
+        String branchIdString = m_form.getFirstValue(RestUtilities.REQUEST_ATTRIBUTE_BRANCH);
+        String idListString = m_form.getFirstValue(RestUtilities.REQUEST_ATTRIBUTE_IDLIST);
         int branchId;
 
         // check if searching by branch
@@ -150,12 +159,16 @@ public class UsersResource extends UserResource {
             try {
                 branchId = RestUtilities.getIntFromAttribute(branchIdString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                        "Branch ID " + branchIdString + " not found.");
+                return RestUtilities.getResponseError(
+                        getResponse(),
+                        ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID,
+                                Branch.class.getSimpleName() + ":" + branchIdString));
             }
 
-            userIds = getCoreContext().getBranchMembersByPage(branchId, 0,
-                    getCoreContext().getBranchMembersCount(branchId));
+            userIds =
+                    getCoreContext().getBranchMembersByPage(branchId, 0,
+                            getCoreContext().getBranchMembersCount(branchId));
             users = getUsers(userIds);
         } else if ((idListString != null) && (!idListString.isEmpty())) {
             // searching by id list
@@ -167,8 +180,8 @@ public class UsersResource extends UserResource {
                 try {
                     idInt = RestUtilities.getIntFromAttribute(id);
                 } catch (Exception exception) {
-                    return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                            "ID " + id + " not found.");
+                    return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                            RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, id));
                 }
 
                 user = getCoreContext().getUser(idInt);
@@ -176,13 +189,8 @@ public class UsersResource extends UserResource {
             }
         } else {
             // process request for all
-            users = getCoreContext().loadUsersByPage(1, getCoreContext().getAllUsersCount()); // no
-                                                                                              // GetUsers()
-                                                                                              // in
-                                                                                              // coreContext,
-                                                                                              // instead
-                                                                                              // some
-                                                                                              // subgroups
+            // no GetUsers() in coreContext, instead some subgroups
+            users = getCoreContext().loadUsersByPage(1, getCoreContext().getAllUsersCount());
         }
 
         List<UserRestInfoFull> usersRestInfo = new ArrayList<UserRestInfoFull>();
@@ -213,21 +221,22 @@ public class UsersResource extends UserResource {
         // validate input for update or create
         ValidationInfo validationInfo = validate(userRestInfo);
 
-        if (!validationInfo.valid) {
-            RestUtilities.setResponseError(getResponse(), validationInfo.responseCode, validationInfo.message);
+        if (!validationInfo.getValid()) {
+            RestUtilities.setResponseError(getResponse(), validationInfo.getResponseCode(),
+                    validationInfo.getMessage());
             return;
         }
 
         // if have id then update single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 user = getCoreContext().getUser(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
@@ -236,13 +245,15 @@ public class UsersResource extends UserResource {
                 updateUser(user, userRestInfo);
                 getCoreContext().saveUser(user);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                        "Update User failed", exception.getLocalizedMessage());
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated User",
-                    user.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()), user
+                    .getId());
 
             return;
         }
@@ -252,13 +263,15 @@ public class UsersResource extends UserResource {
             user = createUser(userRestInfo);
             getCoreContext().saveUser(user);
         } catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                    "Create User failed", exception.getLocalizedMessage());
+            RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_CREATE_FAILED, RestUtilities
+                    .getResponseMessage(ResponseCode.ERROR_CREATE_FAILED, this.getClass().getSimpleName()),
+                    exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created User",
-                user.getId());
+        RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_CREATED, RestUtilities
+                .getResponseMessage(ResponseCode.SUCCESS_CREATED, this.getClass().getSimpleName()), user
+                .getId());
     }
 
     // DELETE - Delete single User
@@ -269,28 +282,30 @@ public class UsersResource extends UserResource {
         User user;
 
         // get id then delete single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 user = getCoreContext().getUser(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
             getCoreContext().deleteUser(user);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted User",
-                    user.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_DELETED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_DELETED, this.getClass().getSimpleName()), user
+                    .getId());
 
             return;
         }
 
         // no id string
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
+        RestUtilities.setResponse(getResponse(), ResponseCode.ERROR_MISSING_ID, RestUtilities
+                .getResponseMessage(ResponseCode.ERROR_MISSING_ID, this.getClass().getSimpleName()));
     }
 
     // Helper functions
@@ -367,7 +382,7 @@ public class UsersResource extends UserResource {
         PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, users.size());
 
         // create list of skill restinfos
-        for (int index = paginationInfo.startIndex; index <= paginationInfo.endIndex; index++) {
+        for (int index = paginationInfo.getStartIndex(); index <= paginationInfo.getEndIndex(); index++) {
             user = users.get(index);
 
             userRestInfo = createUserRestInfo(user);
@@ -383,13 +398,13 @@ public class UsersResource extends UserResource {
         // sort groups if requested
         SortInfo sortInfo = RestUtilities.calculateSorting(m_form);
 
-        if (!sortInfo.sort) {
+        if (!sortInfo.getSort()) {
             return;
         }
 
-        SortField sortField = SortField.toSortField(sortInfo.sortField);
+        SortField sortField = SortField.toSortField(sortInfo.getSortField());
 
-        if (sortInfo.directionForward) {
+        if (sortInfo.getDirectionForward()) {
 
             switch (sortField) {
             case USERNAME:
@@ -426,6 +441,9 @@ public class UsersResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         } else {
@@ -465,6 +483,9 @@ public class UsersResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         }
@@ -597,11 +618,11 @@ public class UsersResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("user", UsersBundleRestInfo.class);
-            xstream.alias("user", UserRestInfoFull.class);
-            xstream.alias("group", UserGroupRestInfo.class);
-            xstream.alias("branch", BranchRestInfoFull.class);
-            xstream.alias("alias", AliasRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USERBUNDLE, UsersBundleRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USER, UserRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_USERGROUP, UserGroupRestInfo.class);
+            xstream.alias(ELEMENT_NAME_BRANCH, BranchRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_ALIAS, AliasRestInfo.class);
         }
     }
 
@@ -617,10 +638,10 @@ public class UsersResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("group", UserGroupRestInfo.class);
-            xstream.alias("user", UserRestInfoFull.class);
-            xstream.alias("branch", BranchRestInfoFull.class);
-            xstream.alias("alias", AliasRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USERGROUP, UserGroupRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USER, UserRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_BRANCH, BranchRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_ALIAS, AliasRestInfo.class);
         }
     }
 

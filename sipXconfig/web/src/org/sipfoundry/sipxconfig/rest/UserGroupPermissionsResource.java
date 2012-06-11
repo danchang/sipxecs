@@ -1,8 +1,8 @@
 /*
  *
- *  UserGroupPermissionsResource.java - A Restlet to read User Group data with Permissions from SipXecs
  *  Copyright (C) 2012 PATLive, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  UserGroupPermissionsResource.java - A Restlet to read User Group data with Permissions from SipXecs
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -42,6 +42,7 @@ import org.sipfoundry.sipxconfig.permission.Permission;
 import org.sipfoundry.sipxconfig.permission.PermissionManager;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.MetadataRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.PaginationInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.ResponseCode;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SettingPermissionRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SortInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.UserGroupPermissionRestInfoFull;
@@ -53,6 +54,10 @@ import org.springframework.beans.factory.annotation.Required;
 import com.thoughtworks.xstream.XStream;
 
 public class UserGroupPermissionsResource extends UserResource {
+
+    private static final String ELEMENT_NAME_USERGROUPPERMISSIONBUNDLE = "user-group-permission";
+    private static final String ELEMENT_NAME_USERGROUPPERMISSION = "group";
+    private static final String ELEMENT_NAME_SETTINGPERMISSION = "setting";
 
     private SettingDao m_settingContext; // saveGroup is not available through corecontext
     private PermissionManager m_permissionManager;
@@ -106,21 +111,22 @@ public class UserGroupPermissionsResource extends UserResource {
         // process request for single
         int idInt;
         UserGroupPermissionRestInfoFull userGroupPermissionRestInfo = null;
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                        "ID " + idString + " not found.");
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
             }
 
             try {
                 userGroupPermissionRestInfo = createUserGroupPermissionRestInfo(idInt);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
-                        "Read User Group failed", exception.getLocalizedMessage());
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_READ_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
             }
 
             return new UserGroupPermissionRepresentation(variant.getMediaType(), userGroupPermissionRestInfo);
@@ -130,7 +136,8 @@ public class UserGroupPermissionsResource extends UserResource {
         List<Group> userGroups = getCoreContext().getGroups(); // settingsContext.getGroups()
                                                                // requires Resource string value
 
-        List<UserGroupPermissionRestInfoFull> userGroupPermissionsRestInfo = new ArrayList<UserGroupPermissionRestInfoFull>();
+        List<UserGroupPermissionRestInfoFull> userGroupPermissionsRestInfo =
+                new ArrayList<UserGroupPermissionRestInfoFull>();
         MetadataRestInfo metadataRestInfo;
 
         // sort if specified
@@ -140,10 +147,11 @@ public class UserGroupPermissionsResource extends UserResource {
         metadataRestInfo = addUserGroups(userGroupPermissionsRestInfo, userGroups);
 
         // create final restinfo
-        UserGroupPermissionsBundleRestInfo userGroupPermissionsBundleRestInfo = new UserGroupPermissionsBundleRestInfo(
-                userGroupPermissionsRestInfo, metadataRestInfo);
+        UserGroupPermissionsBundleRestInfo userGroupPermissionsBundleRestInfo =
+                new UserGroupPermissionsBundleRestInfo(userGroupPermissionsRestInfo, metadataRestInfo);
 
-        return new UserGroupPermissionsRepresentation(variant.getMediaType(), userGroupPermissionsBundleRestInfo);
+        return new UserGroupPermissionsRepresentation(variant.getMediaType(),
+                userGroupPermissionsBundleRestInfo);
     }
 
     // PUT - Update Permissions
@@ -159,21 +167,22 @@ public class UserGroupPermissionsResource extends UserResource {
         // validate input for update or create
         ValidationInfo validationInfo = validate(userGroupPermissionRestInfo);
 
-        if (!validationInfo.valid) {
-            RestUtilities.setResponseError(getResponse(), validationInfo.responseCode, validationInfo.message);
+        if (!validationInfo.getValid()) {
+            RestUtilities.setResponseError(getResponse(), validationInfo.getResponseCode(),
+                    validationInfo.getMessage());
             return;
         }
 
         // if have id then update single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 userGroup = m_settingContext.getGroup(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
@@ -182,19 +191,22 @@ public class UserGroupPermissionsResource extends UserResource {
                 updateUserGroupPermission(userGroup, userGroupPermissionRestInfo);
                 m_settingContext.saveGroup(userGroup);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                        "Update User Group Permissions failed", exception.getLocalizedMessage());
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED,
-                    "Updated User Group Permissions", userGroup.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()),
+                    userGroup.getId());
 
             return;
         }
 
         // otherwise error, since no creation of new permissions
-        RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "Missing ID");
+        RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_MISSING_ID, RestUtilities
+                .getResponseMessage(ResponseCode.ERROR_MISSING_ID, this.getClass().getSimpleName()));
     }
 
     // Helper functions
@@ -252,23 +264,24 @@ public class UserGroupPermissionsResource extends UserResource {
 
             defaultValue = permission.getDefaultValue();
 
-            settingRestInfo = new SettingPermissionRestInfo(permissionName, permissionLabel, permissionValue,
-                    defaultValue);
+            settingRestInfo =
+                    new SettingPermissionRestInfo(permissionName, permissionLabel, permissionValue,
+                            defaultValue);
             settings.add(settingRestInfo);
         }
 
         return settings;
     }
 
-    private MetadataRestInfo addUserGroups(List<UserGroupPermissionRestInfoFull> userGroupPermissionsRestInfo,
-            List<Group> userGroups) {
+    private MetadataRestInfo addUserGroups(
+            List<UserGroupPermissionRestInfoFull> userGroupPermissionsRestInfo, List<Group> userGroups) {
         UserGroupPermissionRestInfoFull userGroupPermissionRestInfo;
 
         // determine pagination
         PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, userGroups.size());
 
         // create list of restinfos
-        for (int index = paginationInfo.startIndex; index <= paginationInfo.endIndex; index++) {
+        for (int index = paginationInfo.getStartIndex(); index <= paginationInfo.getEndIndex(); index++) {
             Group userGroup = userGroups.get(index);
 
             userGroupPermissionRestInfo = createUserGroupPermissionRestInfo(userGroup);
@@ -284,13 +297,13 @@ public class UserGroupPermissionsResource extends UserResource {
         // sort if requested
         SortInfo sortInfo = RestUtilities.calculateSorting(m_form);
 
-        if (!sortInfo.sort) {
+        if (!sortInfo.getSort()) {
             return;
         }
 
-        SortField sortField = SortField.toSortField(sortInfo.sortField);
+        SortField sortField = SortField.toSortField(sortInfo.getSortField());
 
-        if (sortInfo.directionForward) {
+        if (sortInfo.getDirectionForward()) {
 
             switch (sortField) {
             case NAME:
@@ -315,6 +328,9 @@ public class UserGroupPermissionsResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         } else {
@@ -343,6 +359,9 @@ public class UserGroupPermissionsResource extends UserResource {
 
                 });
                 break;
+
+            default:
+                break;
             }
         }
     }
@@ -364,7 +383,8 @@ public class UserGroupPermissionsResource extends UserResource {
     static class UserGroupPermissionsRepresentation extends
             XStreamRepresentation<UserGroupPermissionsBundleRestInfo> {
 
-        public UserGroupPermissionsRepresentation(MediaType mediaType, UserGroupPermissionsBundleRestInfo object) {
+        public UserGroupPermissionsRepresentation(MediaType mediaType,
+                UserGroupPermissionsBundleRestInfo object) {
             super(mediaType, object);
         }
 
@@ -374,13 +394,14 @@ public class UserGroupPermissionsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("user-group-permission", UserGroupPermissionsBundleRestInfo.class);
-            xstream.alias("group", UserGroupPermissionRestInfoFull.class);
-            xstream.alias("setting", SettingPermissionRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USERGROUPPERMISSIONBUNDLE, UserGroupPermissionsBundleRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USERGROUPPERMISSION, UserGroupPermissionRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_SETTINGPERMISSION, SettingPermissionRestInfo.class);
         }
     }
 
-    static class UserGroupPermissionRepresentation extends XStreamRepresentation<UserGroupPermissionRestInfoFull> {
+    static class UserGroupPermissionRepresentation extends
+            XStreamRepresentation<UserGroupPermissionRestInfoFull> {
 
         public UserGroupPermissionRepresentation(MediaType mediaType, UserGroupPermissionRestInfoFull object) {
             super(mediaType, object);
@@ -392,8 +413,8 @@ public class UserGroupPermissionsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("group", UserGroupPermissionRestInfoFull.class);
-            xstream.alias("setting", SettingPermissionRestInfo.class);
+            xstream.alias(ELEMENT_NAME_USERGROUPPERMISSION, UserGroupPermissionRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_SETTINGPERMISSION, SettingPermissionRestInfo.class);
         }
     }
 

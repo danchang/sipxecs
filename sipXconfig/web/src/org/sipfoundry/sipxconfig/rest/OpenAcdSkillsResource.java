@@ -1,8 +1,8 @@
 /*
  *
- *  OpenAcdAgentGroupsResource.java - A Restlet to read Skill data from OpenACD within SipXecs
  *  Copyright (C) 2012 PATLive, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  OpenAcdAgentGroupsResource.java - A Restlet to read Skill data from OpenACD within SipXecs
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -51,6 +51,9 @@ import org.springframework.beans.factory.annotation.Required;
 import com.thoughtworks.xstream.XStream;
 
 public class OpenAcdSkillsResource extends UserResource {
+
+    private static final String ELEMENT_NAME_SKILLBUNDLE = "openacd-skill";
+    private static final String ELEMENT_NAME_SKILL = "skill";
 
     private OpenAcdContext m_openAcdContext;
     private Form m_form;
@@ -108,21 +111,22 @@ public class OpenAcdSkillsResource extends UserResource {
         // process request for single
         int idInt;
         OpenAcdSkillRestInfoFull skillRestInfo = null;
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                        "ID " + idString + " not found.");
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
             }
 
             try {
                 skillRestInfo = createSkillRestInfo(idInt);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
-                        "Read Skills failed", exception.getLocalizedMessage());
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_READ_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_READ_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
             }
 
             return new OpenAcdSkillRepresentation(variant.getMediaType(), skillRestInfo);
@@ -140,8 +144,8 @@ public class OpenAcdSkillsResource extends UserResource {
         metadataRestInfo = addSkills(skillsRestInfo, skills);
 
         // create final restinfo
-        OpenAcdSkillsBundleRestInfo skillsBundleRestInfo = new OpenAcdSkillsBundleRestInfo(skillsRestInfo,
-                metadataRestInfo);
+        OpenAcdSkillsBundleRestInfo skillsBundleRestInfo =
+                new OpenAcdSkillsBundleRestInfo(skillsRestInfo, metadataRestInfo);
 
         return new OpenAcdSkillsRepresentation(variant.getMediaType(), skillsBundleRestInfo);
     }
@@ -159,21 +163,22 @@ public class OpenAcdSkillsResource extends UserResource {
         // validate input for update or create
         ValidationInfo validationInfo = validate(skillRestInfo);
 
-        if (!validationInfo.valid) {
-            RestUtilities.setResponseError(getResponse(), validationInfo.responseCode, validationInfo.message);
+        if (!validationInfo.getValid()) {
+            RestUtilities.setResponseError(getResponse(), validationInfo.getResponseCode(),
+                    validationInfo.getMessage());
             return;
         }
 
         // if have id then update single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 skill = m_openAcdContext.getSkillById(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
@@ -182,13 +187,15 @@ public class OpenAcdSkillsResource extends UserResource {
                 updateSkill(skill, skillRestInfo);
                 m_openAcdContext.saveSkill(skill);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                        "Update Skill failed", exception.getLocalizedMessage());
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Skill",
-                    skill.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()), skill
+                    .getId());
 
             return;
         }
@@ -198,13 +205,15 @@ public class OpenAcdSkillsResource extends UserResource {
             skill = createSkill(skillRestInfo);
             m_openAcdContext.saveSkill(skill);
         } catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                    "Create Skill failed", exception.getLocalizedMessage());
+            RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_CREATE_FAILED, RestUtilities
+                    .getResponseMessage(ResponseCode.ERROR_CREATE_FAILED, this.getClass().getSimpleName()),
+                    exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Skill",
-                skill.getId());
+        RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_CREATED, RestUtilities
+                .getResponseMessage(ResponseCode.SUCCESS_CREATED, this.getClass().getSimpleName()), skill
+                .getId());
     }
 
     // DELETE - Delete single Skill
@@ -215,28 +224,30 @@ public class OpenAcdSkillsResource extends UserResource {
         OpenAcdSkill skill;
 
         // get id then delete single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 skill = m_openAcdContext.getSkillById(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
             m_openAcdContext.deleteSkill(skill);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Skill",
-                    skill.getId());
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_DELETED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_DELETED, this.getClass().getSimpleName()), skill
+                    .getId());
 
             return;
         }
 
         // no id string
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
+        RestUtilities.setResponse(getResponse(), ResponseCode.ERROR_MISSING_ID, RestUtilities
+                .getResponseMessage(ResponseCode.ERROR_MISSING_ID, this.getClass().getSimpleName()));
     }
 
     // Helper functions
@@ -253,20 +264,24 @@ public class OpenAcdSkillsResource extends UserResource {
         String atom = restInfo.getAtom();
 
         for (int i = 0; i < name.length(); i++) {
-            if ((!Character.isLetterOrDigit(name.charAt(i)) && !(Character.getType(name.charAt(i)) == Character.CONNECTOR_PUNCTUATION))
-                    && name.charAt(i) != '-') {
-                validationInfo.valid = false;
-                validationInfo.message = "Validation Error: Skill Group 'Name' must only contain letters, numbers, dashes, and underscores";
-                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+            if ((!Character.isLetterOrDigit(name.charAt(i)))
+                    && (Character.getType(name.charAt(i)) != Character.CONNECTOR_PUNCTUATION)
+                    && (name.charAt(i) != '-')) {
+                validationInfo.setValid(false);
+                validationInfo
+                        .setMessage("'Name' must only contain letters, numbers, dashes, and underscores");
+                validationInfo.setResponseCode(ResponseCode.ERROR_BAD_INPUT);
             }
         }
 
         for (int i = 0; i < atom.length(); i++) {
-            if ((!Character.isLetterOrDigit(atom.charAt(i)) && !(Character.getType(atom.charAt(i)) == Character.CONNECTOR_PUNCTUATION))
-                    && atom.charAt(i) != '-') {
-                validationInfo.valid = false;
-                validationInfo.message = "Validation Error: 'Atom' must only contain letters, numbers, dashes, and underscores";
-                validationInfo.responseCode = ResponseCode.ERROR_BAD_INPUT;
+            if ((!Character.isLetterOrDigit(atom.charAt(i)))
+                    && (Character.getType(atom.charAt(i)) != Character.CONNECTOR_PUNCTUATION)
+                    && (atom.charAt(i) != '-')) {
+                validationInfo.setValid(false);
+                validationInfo
+                        .setMessage("'Atom' must only contain letters, numbers, dashes, and underscores");
+                validationInfo.setResponseCode(ResponseCode.ERROR_BAD_INPUT);
             }
         }
 
@@ -282,14 +297,15 @@ public class OpenAcdSkillsResource extends UserResource {
         return skillRestInfo;
     }
 
-    private MetadataRestInfo addSkills(List<OpenAcdSkillRestInfoFull> skillsRestInfo, List<OpenAcdSkill> skills) {
+    private MetadataRestInfo addSkills(List<OpenAcdSkillRestInfoFull> skillsRestInfo,
+            List<OpenAcdSkill> skills) {
         OpenAcdSkillRestInfoFull skillRestInfo;
 
         // determine pagination
         PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, skills.size());
 
         // create list of skill restinfos
-        for (int index = paginationInfo.startIndex; index <= paginationInfo.endIndex; index++) {
+        for (int index = paginationInfo.getStartIndex(); index <= paginationInfo.getEndIndex(); index++) {
             OpenAcdSkill skill = skills.get(index);
 
             skillRestInfo = new OpenAcdSkillRestInfoFull(skill);
@@ -305,13 +321,13 @@ public class OpenAcdSkillsResource extends UserResource {
         // sort groups if requested
         SortInfo sortInfo = RestUtilities.calculateSorting(m_form);
 
-        if (!sortInfo.sort) {
+        if (!sortInfo.getSort()) {
             return;
         }
 
-        SortField sortField = SortField.toSortField(sortInfo.sortField);
+        SortField sortField = SortField.toSortField(sortInfo.getSortField());
 
-        if (sortInfo.directionForward) {
+        if (sortInfo.getDirectionForward()) {
 
             switch (sortField) {
             case NAME:
@@ -332,7 +348,8 @@ public class OpenAcdSkillsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdSkill skill1 = (OpenAcdSkill) object1;
                         OpenAcdSkill skill2 = (OpenAcdSkill) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(skill1.getGroupName(), skill2.getGroupName());
+                        return RestUtilities.compareIgnoreCaseNullSafe(skill1.getGroupName(),
+                                skill2.getGroupName());
                     }
 
                 });
@@ -362,6 +379,9 @@ public class OpenAcdSkillsResource extends UserResource {
 
                 });
                 break;
+
+            default:
+                break;
             }
         } else {
             // must be reverse
@@ -384,7 +404,8 @@ public class OpenAcdSkillsResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         OpenAcdSkill skill1 = (OpenAcdSkill) object1;
                         OpenAcdSkill skill2 = (OpenAcdSkill) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(skill2.getGroupName(), skill1.getGroupName());
+                        return RestUtilities.compareIgnoreCaseNullSafe(skill2.getGroupName(),
+                                skill1.getGroupName());
                     }
 
                 });
@@ -413,6 +434,9 @@ public class OpenAcdSkillsResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         }
@@ -472,8 +496,8 @@ public class OpenAcdSkillsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("openacd-skill", OpenAcdSkillsBundleRestInfo.class);
-            xstream.alias("skill", OpenAcdSkillRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_SKILLBUNDLE, OpenAcdSkillsBundleRestInfo.class);
+            xstream.alias(ELEMENT_NAME_SKILL, OpenAcdSkillRestInfoFull.class);
         }
     }
 
@@ -489,7 +513,7 @@ public class OpenAcdSkillsResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("skill", OpenAcdSkillRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_SKILL, OpenAcdSkillRestInfoFull.class);
         }
     }
 

@@ -1,8 +1,8 @@
 /*
  *
- *  BranchesResource.java - A Restlet to read Branch data from SipXecs
  *  Copyright (C) 2012 PATLive, D. Chang
  *  Contributed to SIPfoundry under a Contributor Agreement
+ *  BranchesResource.java - A Restlet to read Branch data from SipXecs
  *
  *  This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Affero General Public License as
@@ -43,6 +43,7 @@ import org.sipfoundry.sipxconfig.phonebook.Address;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.BranchRestInfoFull;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.MetadataRestInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.PaginationInfo;
+import org.sipfoundry.sipxconfig.rest.RestUtilities.ResponseCode;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.SortInfo;
 import org.sipfoundry.sipxconfig.rest.RestUtilities.ValidationInfo;
 import org.springframework.beans.factory.annotation.Required;
@@ -50,6 +51,9 @@ import org.springframework.beans.factory.annotation.Required;
 import com.thoughtworks.xstream.XStream;
 
 public class BranchesResource extends UserResource {
+
+    private static final String ELEMENT_NAME_BRANCH = "branch";
+    private static final String ELEMENT_NAME_BRANCHBUNDLE = ELEMENT_NAME_BRANCH;
 
     private BranchManager m_branchManager;
     private Form m_form;
@@ -113,15 +117,17 @@ public class BranchesResource extends UserResource {
             try {
                 idInt = RestUtilities.getIntFromAttribute(idString);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT,
-                        "ID " + idString + " not found.");
+                return RestUtilities.getResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
             }
 
             try {
                 branchRestInfo = createBranchRestInfo(idInt);
             } catch (Exception exception) {
-                return RestUtilities.getResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_READ_FAILED,
-                        "Read Skills failed", exception.getLocalizedMessage());
+                return RestUtilities.getResponseError(getResponse(),
+                        RestUtilities.ResponseCode.ERROR_READ_FAILED, RestUtilities.getResponseMessage(
+                                ResponseCode.ERROR_READ_FAILED, this.getClass().getSimpleName()), exception
+                                .getLocalizedMessage());
             }
 
             return new BranchRepresentation(variant.getMediaType(), branchRestInfo);
@@ -139,8 +145,8 @@ public class BranchesResource extends UserResource {
         metadataRestInfo = addBranches(branchesRestInfo, branches);
 
         // create final restinfo
-        BranchesBundleRestInfo branchesBundleRestInfo = new BranchesBundleRestInfo(branchesRestInfo,
-                metadataRestInfo);
+        BranchesBundleRestInfo branchesBundleRestInfo =
+                new BranchesBundleRestInfo(branchesRestInfo, metadataRestInfo);
 
         return new BranchesRepresentation(variant.getMediaType(), branchesBundleRestInfo);
     }
@@ -158,21 +164,22 @@ public class BranchesResource extends UserResource {
         // validate input for update or create
         ValidationInfo validationInfo = validate(branchRestInfo);
 
-        if (!validationInfo.valid) {
-            RestUtilities.setResponseError(getResponse(), validationInfo.responseCode, validationInfo.message);
+        if (!validationInfo.getValid()) {
+            RestUtilities.setResponseError(getResponse(), validationInfo.getResponseCode(),
+                    validationInfo.getMessage());
             return;
         }
 
         // if have id then update single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
                 int idInt = RestUtilities.getIntFromAttribute(idString);
                 branch = m_branchManager.getBranch(idInt);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
@@ -181,12 +188,14 @@ public class BranchesResource extends UserResource {
                 updateBranch(branch, branchRestInfo);
                 m_branchManager.saveBranch(branch);
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                        "Update Branch failed", exception.getLocalizedMessage());
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_UPDATE_FAILED,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_UPDATE_FAILED, this.getClass()
+                                .getSimpleName()), exception.getLocalizedMessage());
                 return;
             }
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_UPDATED, "Updated Branch",
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_UPDATED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_UPDATED, this.getClass().getSimpleName()),
                     branch.getId());
 
             return;
@@ -197,13 +206,15 @@ public class BranchesResource extends UserResource {
             branch = createBranch(branchRestInfo);
             m_branchManager.saveBranch(branch);
         } catch (Exception exception) {
-            RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_WRITE_FAILED,
-                    "Create Branch failed", exception.getLocalizedMessage());
+            RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_CREATE_FAILED, RestUtilities
+                    .getResponseMessage(ResponseCode.ERROR_CREATE_FAILED, this.getClass().getSimpleName()),
+                    exception.getLocalizedMessage());
             return;
         }
 
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_CREATED, "Created Branch",
-                branch.getId());
+        RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_CREATED, RestUtilities
+                .getResponseMessage(ResponseCode.SUCCESS_CREATED, this.getClass().getSimpleName()), branch
+                .getId());
     }
 
     // DELETE - Delete single Branch
@@ -215,7 +226,7 @@ public class BranchesResource extends UserResource {
         int idInt;
 
         // get id then delete single
-        String idString = (String) getRequest().getAttributes().get("id");
+        String idString = (String) getRequest().getAttributes().get(RestUtilities.REQUEST_ATTRIBUTE_ID);
 
         if (idString != null) {
             try {
@@ -223,8 +234,8 @@ public class BranchesResource extends UserResource {
                 branch = m_branchManager.getBranch(idInt); // just obtain to make sure exists, use
                                                            // int id for actual delete
             } catch (Exception exception) {
-                RestUtilities.setResponseError(getResponse(), RestUtilities.ResponseCode.ERROR_BAD_INPUT, "ID "
-                        + idString + " not found.");
+                RestUtilities.setResponseError(getResponse(), ResponseCode.ERROR_BAD_ID,
+                        RestUtilities.getResponseMessage(ResponseCode.ERROR_BAD_ID, idString));
                 return;
             }
 
@@ -232,14 +243,16 @@ public class BranchesResource extends UserResource {
             branchIds.add(idInt);
             m_branchManager.deleteBranches(branchIds);
 
-            RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.SUCCESS_DELETED, "Deleted Branch",
+            RestUtilities.setResponse(getResponse(), ResponseCode.SUCCESS_DELETED, RestUtilities
+                    .getResponseMessage(ResponseCode.SUCCESS_DELETED, this.getClass().getSimpleName()),
                     branch.getId());
 
             return;
         }
 
         // no id string
-        RestUtilities.setResponse(getResponse(), RestUtilities.ResponseCode.ERROR_MISSING_INPUT, "ID value missing");
+        RestUtilities.setResponse(getResponse(), ResponseCode.ERROR_MISSING_ID, RestUtilities
+                .getResponseMessage(ResponseCode.ERROR_MISSING_ID, this.getClass().getSimpleName()));
     }
 
     // Helper functions
@@ -271,7 +284,7 @@ public class BranchesResource extends UserResource {
         PaginationInfo paginationInfo = RestUtilities.calculatePagination(m_form, branches.size());
 
         // create list of skill restinfos
-        for (int index = paginationInfo.startIndex; index <= paginationInfo.endIndex; index++) {
+        for (int index = paginationInfo.getStartIndex(); index <= paginationInfo.getEndIndex(); index++) {
             Branch branch = branches.get(index);
 
             branchRestInfo = new BranchRestInfoFull(branch);
@@ -287,13 +300,13 @@ public class BranchesResource extends UserResource {
         // sort if requested
         SortInfo sortInfo = RestUtilities.calculateSorting(m_form);
 
-        if (!sortInfo.sort) {
+        if (!sortInfo.getSort()) {
             return;
         }
 
-        SortField sortField = SortField.toSortField(sortInfo.sortField);
+        SortField sortField = SortField.toSortField(sortInfo.getSortField());
 
-        if (sortInfo.directionForward) {
+        if (sortInfo.getDirectionForward()) {
 
             switch (sortField) {
             case CITY:
@@ -302,8 +315,8 @@ public class BranchesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getAddress().getCity(), branch2
-                                .getAddress().getCity());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getAddress().getCity(),
+                                branch2.getAddress().getCity());
                     }
 
                 });
@@ -315,8 +328,8 @@ public class BranchesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getAddress().getOfficeDesignation(),
-                                branch2.getAddress().getOfficeDesignation());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch1.getAddress()
+                                .getOfficeDesignation(), branch2.getAddress().getOfficeDesignation());
                     }
 
                 });
@@ -346,6 +359,9 @@ public class BranchesResource extends UserResource {
 
                 });
                 break;
+
+            default:
+                break;
             }
         } else {
             // must be reverse
@@ -356,8 +372,8 @@ public class BranchesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getAddress().getCity(), branch1
-                                .getAddress().getCity());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getAddress().getCity(),
+                                branch1.getAddress().getCity());
                     }
 
                 });
@@ -369,8 +385,8 @@ public class BranchesResource extends UserResource {
                     public int compare(Object object1, Object object2) {
                         Branch branch1 = (Branch) object1;
                         Branch branch2 = (Branch) object2;
-                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getAddress().getOfficeDesignation(),
-                                branch1.getAddress().getOfficeDesignation());
+                        return RestUtilities.compareIgnoreCaseNullSafe(branch2.getAddress()
+                                .getOfficeDesignation(), branch1.getAddress().getOfficeDesignation());
                     }
 
                 });
@@ -399,6 +415,9 @@ public class BranchesResource extends UserResource {
                     }
 
                 });
+                break;
+
+            default:
                 break;
             }
         }
@@ -466,8 +485,8 @@ public class BranchesResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("branch", BranchesBundleRestInfo.class);
-            xstream.alias("branch", BranchRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_BRANCHBUNDLE, BranchesBundleRestInfo.class);
+            xstream.alias(ELEMENT_NAME_BRANCH, BranchRestInfoFull.class);
         }
     }
 
@@ -483,7 +502,7 @@ public class BranchesResource extends UserResource {
 
         @Override
         protected void configureXStream(XStream xstream) {
-            xstream.alias("branch", BranchRestInfoFull.class);
+            xstream.alias(ELEMENT_NAME_BRANCH, BranchRestInfoFull.class);
         }
     }
 
